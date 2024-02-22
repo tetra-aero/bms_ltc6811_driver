@@ -3,16 +3,21 @@
 #include <string>
 
 LTC6811 bms(SPI);
-
+SPISettings mySPISettings = SPISettings(1000000, MSBFIRST, SPI_MODE0);
 void setup()
 {
   pinMode(SS, OUTPUT);
   SPI.begin();
+  SPI.beginTransaction(mySPISettings);
   Serial.begin(9600);
 }
 
+
+
 void loop()
 {
+  
+  
   Serial.write("__LOOP__\r\n");
   auto status = bms.GetVoltageStatus();
   Serial.write("\r\n");

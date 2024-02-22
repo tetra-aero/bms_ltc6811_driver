@@ -210,14 +210,15 @@ private:
         auto serialized_data = reinterpret_cast<uint8_t *>(register_group.register_group.begin());
 
         digitalWrite(SS, LOW);
-        
+
         hspi.writeBytes(register_group.command.data(), kCommandLength);
+
+        // digitalWrite(SS, LOW);
 
         for (size_t i = 0; i < kBytesPerRegister * kDaisyChainLength; ++i) {
             serialized_data[i] = hspi.transfer(0xFF);
         }
-        digitalWrite(SS, HIGH);
-
+        
         for (auto& Register : register_group.register_group) {
             if (Register.PEC != PEC15Calc(Register.data)) {
                 return 1; // PEC error

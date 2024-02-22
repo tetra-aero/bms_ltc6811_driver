@@ -254,7 +254,9 @@ void LTC6811::StartConversion(const LTC6811Command& command) {
     WakeFromIdle(); // It's possible all of these can be removed
 
     digitalWrite(SS, LOW);
+    delayMicroseconds(500);
     hspi.writeBytes(command.data(), kCommandLength);       // Start cell voltage conversion.
+    delayMicroseconds(500);
     digitalWrite(SS, HIGH);
 
     delayMicroseconds(T_REFUP_MAX + T_CYCLE_FAST_MAX); // TODO we aren't in fast conversion mode??? Also these delays aren't in the Linduino library
