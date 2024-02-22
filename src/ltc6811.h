@@ -49,7 +49,7 @@ struct LTC6811RegisterGroup
 
 struct LTC6811VoltageStatus
 {
-    size_t sum{0};
+    int sum{0};
     uint16_t min{std::numeric_limits<uint16_t>::max()};
     size_t min_id{0};
     uint16_t max{std::numeric_limits<uint16_t>::min()};
@@ -212,11 +212,11 @@ private:
         digitalWrite(SS, LOW);
         
         hspi.writeBytes(register_group.command.data(), kCommandLength);
-        digitalWrite(SS, LOW);
 
         for (size_t i = 0; i < kBytesPerRegister * kDaisyChainLength; ++i) {
             serialized_data[i] = hspi.transfer(0xFF);
         }
+        digitalWrite(SS, HIGH);
 
         for (auto& Register : register_group.register_group) {
             if (Register.PEC != PEC15Calc(Register.data)) {

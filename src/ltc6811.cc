@@ -126,8 +126,9 @@ std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void) {
     for (const auto& register_group : cell_data) {
         for (const auto& Register : register_group.register_group) {
             for (const auto voltage : Register.data) {
+                Serial.write((std::to_string(voltage) + "\r\n").c_str());
                 status.sum += voltage;
-
+                
                 if (voltage < status.min) {
                     status.min = voltage;
                     status.min_id = count;
@@ -170,7 +171,6 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus() {
         for (const auto& Register : register_group.register_group) {
             for (auto temperature : Register.data) {
                 temperature = steinharthart(temperature);
-
                 if (temperature < status.min) {
                     status.min = temperature;
                     status.min_id = count;
