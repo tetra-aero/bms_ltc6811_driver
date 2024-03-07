@@ -8,6 +8,7 @@
 class ISL28022
 {
 private:
+    /*Register Group*/
     enum REG : uint8_t
     {
         CONFIG,
@@ -17,7 +18,7 @@ private:
         CURRENT,
         CALIB,
     };
-
+    /*Regsiter Bits on CONFIG Group*/
     enum CONFIG : uint8_t
     {
         MODE0,
@@ -38,6 +39,12 @@ private:
         RST
     };
 
+    static constexpr double MAX_SHUNT_VOLTAGE = 320.0;
+    static constexpr double SHUNT_RESISTANCE = 0.1;
+    /* Create bit mask 
+    return: uint16_t 
+    argument: wake up bits min 0, max 15
+    */
     template <typename... BITS>
     constexpr uint16_t make_mask(BITS... bits)
     {
@@ -49,6 +56,10 @@ private:
         return ret;
     }
 
+    /* OverWrite Register Data
+    return: None
+    argument: RegisterGroupAddress, Data
+    */
     void write_register(const uint8_t reg, const uint16_t mask)
     {
         hi2c_.beginTransmission(addr_);
@@ -57,6 +68,10 @@ private:
         hi2c_.write(mask & 0xFF);
         hi2c_.endTransmission();
     }
+    /* Read Register Data
+    return: Optional value(Error or int16_t)
+    argument: Register Group Address, retry(millis)
+    */
 
     std::optional<uint16_t> read_register(const uint8_t reg, const uint32_t wait = 10)
     {
@@ -81,16 +96,28 @@ private:
             return std::nullopt;
         }
     }
-
+    /* Calculate Constant ShuntVoltage Value
+    On 15bit, +-320mv, Mode, Voltage(mV) = Reading Value * (320 / 2^15) 
+    */
     constexpr double factor_shuntvoltage(){
-        return 320.0 / std::numeric_limits<int16_t>::max();
+        return MAX_SHUNT_VOLTAGE / std::numeric_limits<int16_t>::max();
     }
-
+    /* Calculate Constant BusVoltage Value
+    Reading Value is 14bit value(valid bit 15 ~ 2), So we have to div by (2^2)
+    BusVoltage(V) = Reading Value / 4 *  VBUS_lsb(4mV)
+    */
+    constexpr double factor_busvoltage() {
+        return 0.004;
+    }
+    /* Calculate Constant Current Value
+    Current(mA) = Reading Value / (2^15) * (320) / ShuntRegistance */
     constexpr double factor_current()
     {
-        return 320.0 / 5.0 / 32768.0;
+        return MAX_SHUNT_VOLTAGE / SHUNT_RESISTANCE / std::numeric_limits<int16_t>::max();
     }
-
+    /* Calculate Constant Power Value
+    Power(W) = Reading Value * factor_current * factor_busvoltage * 5000
+    */
     constexpr double factor_power()
     {
         return 97.65625 * 5000.0 * 2.0 / 1000000.0;
@@ -117,7 +144,7 @@ public:
         auto result = read_register(REG::SHUNTVOLT);
         if (result.has_value())
         {
-            return result.value() * factor_shuntvoltage();
+            return static_cast<int16_t>(result.value()) * factor_shuntvoltage();
         }
         else
         {
@@ -130,7 +157,7 @@ public:
         auto result = read_register(REG::BUSVOLT);
         if (result.has_value())
         {
-            return result.value() * 0.001;
+            return (static_cast<int16_t>(result.value()) >> 2) * factor_busvoltage();
         }
         else
         {
@@ -156,7 +183,7 @@ public:
         auto result = read_register(REG::CURRENT);
         if (result.has_value())
         {
-            return result.value() * factor_current();
+            return static_cast<int16_t>(result.value()) * factor_current();
         }
         else
         {

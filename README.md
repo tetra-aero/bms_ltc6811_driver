@@ -1,4 +1,4 @@
-# BMS Firmaware with LTC6811
+# BMS Firmaware with LTC6811 and ISL28022
 
 ## 搭載されているIC（機能）
 
