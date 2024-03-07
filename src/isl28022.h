@@ -5,8 +5,6 @@
 
 #include <optional>
 
-
-
 class ISL28022
 {
 private:
@@ -53,29 +51,29 @@ private:
 
     void write_register(const uint8_t reg, const uint16_t mask)
     {
-        Wire.beginTransmission(addr_);
-        Wire.write(reg);
-        Wire.write((mask >> 8) & 0xFF);
-        Wire.write(mask & 0xFF);
-        Wire.endTransmission();
+        hi2c_.beginTransmission(addr_);
+        hi2c_.write(reg);
+        hi2c_.write((mask >> 8) & 0xFF);
+        hi2c_.write(mask & 0xFF);
+        hi2c_.endTransmission();
     }
 
-    std::optional<float> read_register(const uint8_t reg, const uint32_t wait = 10)
+    std::optional<uint16_t> read_register(const uint8_t reg, const uint32_t wait = 10)
     {
-        Wire.beginTransmission(addr_);
-        Wire.write(reg);
-        Wire.endTransmission();
-        Wire.requestFrom(addr_, 2);
+        hi2c_.beginTransmission(addr_);
+        hi2c_.write(reg);
+        hi2c_.endTransmission();
+        hi2c_.requestFrom(addr_, 2);
         uint32_t count{};
-        while (!Wire.available() && count < wait)
+        while (!hi2c_.available() && count < wait)
         {
             delay(1);
             count++;
         }
-        if (Wire.available())
+        if (hi2c_.available())
         {
-            byte first = Wire.read();
-            byte second = Wire.read();
+            byte first = hi2c_.read();
+            byte second = hi2c_.read();
             return (first << 8 | second);
         }
         else
@@ -84,19 +82,34 @@ private:
         }
     }
 
+    constexpr double factor_shuntvoltage(){
+        return 320.0 / std::numeric_limits<int16_t>::max();
+    }
+
+    constexpr double factor_current()
+    {
+        return 320.0 / 5.0 / 32768.0;
+    }
+
+    constexpr double factor_power()
+    {
+        return 97.65625 * 5000.0 * 2.0 / 1000000.0;
+    }
+
     uint8_t addr_;
+    TwoWire &hi2c_;
 
 public:
-    ISL28022(uint8_t addr) : addr_(addr)
+    ISL28022(TwoWire &hi2c, uint8_t addr) : hi2c_(hi2c), addr_(addr)
     {
     }
 
     void begin()
     {
         write_register(REG::CONFIG, make_mask(CONFIG::RST));
-        // busvol = 60v, shuntvol = +-250mv, resolution = 15bit,sampling bus and shunt vol
-        write_register(REG::CONFIG, make_mask(CONFIG::BRNG0,CONFIG::BRNG0,CONFIG::BRNG1,CONFIG::PG1,CONFIG::PG0,CONFIG::BADC1,CONFIG::BADC0,CONFIG::SADC1,CONFIG::SADC0,CONFIG::MODE0,CONFIG::MODE1,CONFIG::MODE2));
-        write_register(REG::CALIB, make_mask());
+        // busvol = 60v, shuntvol = +-250mv, resolution = 15bit, detect both bus and shunt vol
+        write_register(REG::CONFIG, make_mask(CONFIG::BRNG0, CONFIG::BRNG0, CONFIG::BRNG1, CONFIG::PG1, CONFIG::PG0, CONFIG::BADC1, CONFIG::BADC0, CONFIG::SADC1, CONFIG::SADC0, CONFIG::MODE0, CONFIG::MODE1, CONFIG::MODE2));
+        write_register(REG::CALIB, 0x1062);
     }
 
     std::optional<float> GetShuntVoltage()
@@ -104,7 +117,7 @@ public:
         auto result = read_register(REG::SHUNTVOLT);
         if (result.has_value())
         {
-            return 
+            return result.value() * factor_shuntvoltage();
         }
         else
         {
@@ -117,7 +130,7 @@ public:
         auto result = read_register(REG::BUSVOLT);
         if (result.has_value())
         {
-            return 
+            return result.value() * 0.001;
         }
         else
         {
@@ -130,7 +143,7 @@ public:
         auto result = read_register(REG::POWER);
         if (result.has_value())
         {
-            return 
+            return result.value() * factor_power();
         }
         else
         {
@@ -143,6 +156,7 @@ public:
         auto result = read_register(REG::CURRENT);
         if (result.has_value())
         {
+            return result.value() * factor_current();
         }
         else
         {
