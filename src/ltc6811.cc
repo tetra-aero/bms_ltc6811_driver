@@ -165,7 +165,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus() {
         constexpr auto Vin = 30000.0;
         constexpr auto B = 4150;
         auto R = NTC_voltage / (Vin - NTC_voltage);
-        auto TempInv = ((1 / (273.15+25)) - (std::log(R / B) ));
+        auto TempInv = ((1 / (273.15+25)) + (std::log(R) / B ));
         return static_cast<int16_t>(((1 / TempInv) - 273.15));
     };
 
