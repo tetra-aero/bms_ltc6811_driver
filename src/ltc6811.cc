@@ -70,7 +70,7 @@ bool LTC6811::ReadVoltageRegisterGroup(Group const group) {
  * Returns 0 on success, 1 if either PEC or SPI error.
  */
 bool LTC6811::ReadAuxRegisterGroup(Group const group) {
-    return ReadRegisterGroup(cell_data[group]);
+    return ReadRegisterGroup(temp_data[group]);
 }
 
 /* Read a status register group of an LTC6811 daisy chain. */
@@ -161,25 +161,40 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus() {
         return static_cast<int16_t>(100.0f / (A + log * ( B + log * (C + D * log))) - KtoC);
     };
 
+    auto Bvalue = [](int16_t const NTC_voltage) noexcept {
+        constexpr auto Vin = 30000.0;
+        constexpr auto B = 4150;
+        auto R = NTC_voltage / (Vin - NTC_voltage);
+        auto TempInv = ((1 / (273.15+25)) - (std::log(R / B) ));
+        return static_cast<int16_t>(((1 / TempInv) - 273.15));
+    };
+
     StartConversion(ADAX);
 
     for (size_t group = A; group <= D; ++group)
         if (!ReadAuxRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
 
-    for (const auto& register_group : cell_data) {
+    for (const auto& register_group : temp_data) {
         for (const auto& Register : register_group.register_group) {
-            for (auto temperature : Register.data) {
-                temperature = steinharthart(temperature);
-                if (temperature < status.min) {
-                    status.min = temperature;
-                    status.min_id = count;
-                } else if (temperature > status.max) {
-                    status.max = temperature;
-                    status.max_id = count;
+            for (auto data : Register.data) {
+                if(count < 5)
+                {
+                    Serial.write((std::to_string(data) + "\r\n").c_str());
+                    int16_t temperature = Bvalue(data);
+                    Serial.write((std::to_string(temperature) + "\r\n").c_str());
+                    if (temperature < status.min) {
+                        status.min = temperature;
+                        status.min_id = count;
+                    }
+                    if (temperature > status.max) {
+                        status.max = temperature;
+                        status.max_id = count;
+                    }
+
+                    ++count;
                 }
 
-                ++count;
             }
         }
     }

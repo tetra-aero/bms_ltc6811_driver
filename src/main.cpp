@@ -42,42 +42,42 @@ void loop()
       Serial.write("\r\n");
     }
   }
-  {
-    auto status = pm.GetBusVoltage();
-    if (status.has_value())
-    {
-      Serial.write("BUSVOLTAGE: ");
-      Serial.write(std::to_string(status.value()).c_str());
-      Serial.write("\r\n");
-    }
-  }
-  {
-    auto status = pm.GetCurrent();
-    if (status.has_value())
-    {
-      Serial.write("CURRENT: ");
-      Serial.write(std::to_string(status.value()).c_str());
-      Serial.write("\r\n");
-    }
-  }
-  {
-    auto status = pm.GetShuntVoltage();
-    if (status.has_value())
-    {
-      Serial.write("SHUNTVOLTAGE: ");
-      Serial.write(std::to_string(status.value()).c_str());
-      Serial.write("\r\n");
-    }
-  }
-  {
-    auto status = pm.GetPower();
-    if (status.has_value())
-    {
-      Serial.write("POWER: ");
-      Serial.write(std::to_string(status.value()).c_str());
-      Serial.write("\r\n");
-    }
-  }
+  // {
+  //   auto status = pm.GetBusVoltage();
+  //   if (status.has_value())
+  //   {
+  //     Serial.write("BUSVOLTAGE: ");
+  //     Serial.write(std::to_string(status.value()).c_str());
+  //     Serial.write("\r\n");
+  //   }
+  // }
+  // {
+  //   auto status = pm.GetCurrent();
+  //   if (status.has_value())
+  //   {
+  //     Serial.write("CURRENT: ");
+  //     Serial.write(std::to_string(status.value()).c_str());
+  //     Serial.write("\r\n");
+  //   }
+  // }
+  // {
+  //   auto status = pm.GetShuntVoltage();
+  //   if (status.has_value())
+  //   {
+  //     Serial.write("SHUNTVOLTAGE: ");
+  //     Serial.write(std::to_string(status.value()).c_str());
+  //     Serial.write("\r\n");
+  //   }
+  // }
+  // {
+  //   auto status = pm.GetPower();
+  //   if (status.has_value())
+  //   {
+  //     Serial.write("POWER: ");
+  //     Serial.write(std::to_string(status.value()).c_str());
+  //     Serial.write("\r\n");
+  //   }
+  // }
 
   delay(1000);
 }
