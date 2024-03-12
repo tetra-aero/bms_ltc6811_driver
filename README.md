@@ -1,4 +1,4 @@
-# BMS Firmaware with LTC6811 and ISL28022
+# BMS Firmware with LTC6811 and ISL28022
 
 # 動作確認の取れている機能
 - セル電圧測定
