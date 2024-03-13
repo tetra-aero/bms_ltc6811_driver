@@ -27,8 +27,8 @@ void loop()
     Serial.write("\r\n");
     if (status.has_value())
     {
-      Serial.write("VOLTAGE:\r\n");
-      Serial.write((std::to_string(status.value().sum / 10000) + "V\r\n").c_str());
+      Serial.write("VOLTAGE:[mV]\r\n");
+      Serial.write((std::to_string(status.value().sum / 10) + "\r\n").c_str());
       Serial.write("\r\n");
     }
   }
@@ -36,7 +36,7 @@ void loop()
     auto status = bms.GetTemperatureStatus();
     if (status.has_value())
     {
-      Serial.write("Temperature:\r\n");
+      Serial.write("Temperature:[mdeg]\r\n");
       Serial.write((std::to_string(status.value().max) + "\r\n").c_str());
       Serial.write((std::to_string(status.value().min) + "\r\n").c_str());
       Serial.write("\r\n");

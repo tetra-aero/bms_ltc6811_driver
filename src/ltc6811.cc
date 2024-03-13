@@ -3,6 +3,8 @@
  *
  *  Created on: 12 Mar 2020
  *      Author: Joshua
+ *  Edited on : 22 Feb 2024
+ *      Author: Hori
  */
 
 #include "ltc6811.h"
@@ -163,10 +165,10 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus() {
 
     auto Bvalue = [](int16_t const NTC_voltage) noexcept {
         constexpr auto Vin = 30000.0;
-        constexpr auto B = 4150;
+        constexpr auto B = 4550;
         auto R = NTC_voltage / (Vin - NTC_voltage);
-        auto TempInv = ((1 / (273.15+25)) + (std::log(R) / B ));
-        return static_cast<int16_t>(((1 / TempInv) - 273.15));
+        auto TempInv = ((1 / (273.15+25)) + (std::log(R) / B )) ;
+        return static_cast<int16_t>(((1 / TempInv) * 1000 - 273150));
     };
 
     StartConversion(ADAX);
@@ -180,7 +182,6 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus() {
             for (auto data : Register.data) {
                 if(count < 5)
                 {
-                    Serial.write((std::to_string(data) + "\r\n").c_str());
                     int16_t temperature = Bvalue(data);
                     Serial.write((std::to_string(temperature) + "\r\n").c_str());
                     if (temperature < status.min) {
