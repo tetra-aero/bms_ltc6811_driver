@@ -214,12 +214,14 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus& voltage_status) {
 
             for (const auto& register_group : cell_data) { // 4 voltage register groups
                 for (const auto voltage : register_group.register_group[current_ic--].data) { // 3 voltages per IC
+                    Serial.println(std::to_string(voltage).c_str());
+                    Serial.println();
                     if (voltage > voltage_status.min + kDelta)
-                        DCCx |= 1 << current_cell;
+                        DCCx |= (1 << current_cell);
                     ++current_cell;
                 } // 4 * 3 = 12 voltages associated with each LTC6811 in the daisy chain
             }
-
+            Serial.println(std::to_string(DCCx).c_str());
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
             cfg_register.PEC = PEC15Calc(cfg_register.data);
@@ -230,13 +232,14 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus& voltage_status) {
         if (voltage_status.max - voltage_status.min > kDelta) {
             current_ic = voltage_status.max_id / 3 % 12;
             DCCx |= 1 << voltage_status.max_id % 11;
+
             slave_cfg_tx.register_group[current_ic].data[4] = DCCx & 0xFF;
             slave_cfg_tx.register_group[current_ic].data[5] = DCCx >> 8 & 0xF;
             slave_cfg_tx.register_group[current_ic].PEC = PEC15Calc(slave_cfg_tx.register_group[current_ic].data);
         }
         break;
 
-    case GTMeanPlusDelta: {
+    case GTMeanPlusDelta:
         size_t average_voltage{ voltage_status.sum / (12 * kDaisyChainLength) };
 
         for (auto& cfg_register : slave_cfg_tx.register_group) {
@@ -255,10 +258,8 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus& voltage_status) {
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
             cfg_register.PEC = PEC15Calc(cfg_register.data);
         }
+        break;
     }
-    break;
-    }
-
     WriteConfigRegisterGroup();
     delayMicroseconds(500); // TODO take this out. Just read when we need the data to send over CAN or whatever
     ReadConfigRegisterGroup();

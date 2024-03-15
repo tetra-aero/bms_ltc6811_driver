@@ -195,12 +195,18 @@ private:
     bool WriteRegisterGroup(LTC6811RegisterGroup<T> &register_group)
     {
         WakeFromIdle();
-
         auto serialized_data = reinterpret_cast<uint8_t *>(&register_group);
-
         digitalWrite(SS, LOW);
-        hspi.writeBytes(serialized_data, sizeof(register_group));
+        hspi.writeBytes(serialized_data,sizeof(register_group));
+        // hspi.writeBytes(register_group.command.data(),register_group.command.size());
+        // for(auto &x : register_group.register_group)
+        // {
+        // hspi.writeBytes(x.data.data(),x.data.size());
+        // hspi.transfer((x.PEC >> 8) & 0xFF);
+        // hspi.transfer(x.PEC & 0xFF);
+        // }
         digitalWrite(SS, HIGH);
+        return false;
     }
 
     /* Read Register Function. Return 0 if success, 1 if failure. */
@@ -226,7 +232,7 @@ private:
                 return 1; // PEC error
             }
         }
-        return 0;
+        return false;
     }
 
     constexpr static uint16_t crc15Table[256]{
