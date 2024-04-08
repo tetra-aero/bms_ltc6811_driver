@@ -26,7 +26,7 @@
 #define T_CYCLE_FAST_MAX 1185 // Measure 12 Cells
 
 constexpr static size_t kBytesPerRegister{8};
-constexpr static size_t kDaisyChainLength{1};
+constexpr static size_t kDaisyChainLength{3};
 constexpr static size_t kCommandLength{4};
 constexpr static uint8_t kDelta{100};
 
@@ -61,6 +61,7 @@ struct LTC6811VoltageStatus
 
 struct LTC6811TempStatus
 {
+    std::array<std::array<int32_t,6>, kDaisyChainLength> temp;
     int16_t min{std::numeric_limits<int16_t>::max()};
     size_t min_id{0};
     int16_t max{std::numeric_limits<int16_t>::min()};
