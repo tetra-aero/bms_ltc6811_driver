@@ -26,7 +26,7 @@
 #define T_CYCLE_FAST_MAX 1185 // Measure 12 Cells
 
 constexpr static size_t kBytesPerRegister{8};
-constexpr static size_t kDaisyChainLength{3};
+constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
 constexpr static uint8_t kDelta{100};
 
@@ -222,13 +222,13 @@ private:
 
         hspi.writeBytes(register_group.command.data(), kCommandLength);
 
-        // digitalWrite(SS, LOW);
+        digitalWrite(SS, LOW);
 
         for (size_t i = 0; i < kBytesPerRegister * kDaisyChainLength; ++i) {
             serialized_data[i] = hspi.transfer(0xFF);
         }
 
-        digitalWrite(SS, HIGH);
+        // digitalWrite(SS, HIGH);
         
         for (auto& Register : register_group.register_group) {
             if (Register.PEC != PEC15Calc(Register.data)) {

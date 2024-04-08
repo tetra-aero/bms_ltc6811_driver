@@ -171,10 +171,10 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus() {
 
     auto Bvalue = [](int16_t const NTC_voltage) noexcept {
         constexpr auto Vin = 30000.0;
-        constexpr auto B = 4550;
+        constexpr auto B = 4150;
         auto R = NTC_voltage / (Vin - NTC_voltage);
-        auto TempInv = ((1 / (273.15+25)) + (std::log(R) / B )) ;
-        return static_cast<int16_t>(((1 / TempInv) * 1000 - 273150));
+        auto TempInv = ((1 / (273.15+25)) + (std::log(R) / B ));
+        return static_cast<int32_t>(((1 / TempInv) * 1000 - 273150));
     };
 
     StartConversion(ADAX);
@@ -186,10 +186,10 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus() {
     for (const auto& register_group : temp_data) {
         for (const auto& Register : register_group.register_group) {
             for (auto data : Register.data) {
-                if(count >= 0)
+                if(count < 5)
                 {
                     int16_t temperature = Bvalue(data);
-                    Serial.write((std::to_string(temperature) + "\r\n").c_str());
+                    Serial.write((std::to_string(data) + "\r\n").c_str());
                     if (temperature < status.min) {
                         status.min = temperature;
                         status.min_id = count;
@@ -277,9 +277,9 @@ void LTC6811::StartConversion(const LTC6811Command& command) {
     WakeFromIdle(); // It's possible all of these can be removed
 
     digitalWrite(SS, LOW);
-    delayMicroseconds(500);
+    // delayMicroseconds(500);
     hspi.writeBytes(command.data(), kCommandLength);       // Start cell voltage conversion.
-    delayMicroseconds(500);
+    // delayMicroseconds(500);
     digitalWrite(SS, HIGH);
 
     delayMicroseconds(T_REFUP_MAX + T_CYCLE_FAST_MAX); // TODO we aren't in fast conversion mode??? Also these delays aren't in the Linduino library
