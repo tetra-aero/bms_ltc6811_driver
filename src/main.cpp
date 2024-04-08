@@ -30,7 +30,7 @@ void loop()
       Serial.write("VOLTAGE:[V]\r\n");
       for(auto board : status.value().vol){
         for(auto voltage : board){
-          Serial.write((std::to_string((float)voltage / 10000)+  "\r\n").c_str());
+          Serial.write((std::to_string(static_cast<float>(voltage) / 10000)+  "\r\n").c_str());
         }
       }
       Serial.write("\r\n");
@@ -43,12 +43,12 @@ void loop()
     {
       for(auto board : status.value().temp){
         for(auto temp : board){
-          Serial.write((std::to_string((float)temp / 1000)+  "\r\n").c_str());
+          Serial.write((std::to_string(static_cast<float>(temp) / 1000)+  "\r\n").c_str());
         }
       }
-      Serial.write("\r\nTemperature:[mdeg]\r\n");
-      Serial.write(("MAX: "+std::to_string(status.value().max) + "\r\n").c_str());
-      Serial.write(("MIN: "+std::to_string(status.value().min) + "\r\n").c_str());
+      Serial.write("\r\nTemperature:[deg]\r\n");
+      Serial.write(("MAX: "+std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
+      Serial.write(("MIN: "+std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
       Serial.write("\r\n");
     }
   }
