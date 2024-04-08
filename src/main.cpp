@@ -47,7 +47,11 @@ void DebugVolTempLoop()
     if (status.has_value())
     {
       Serial.write("VOLTAGE:[mV]\r\n");
-      Serial.write((std::to_string(status.value().sum / 10) + "\r\n").c_str());
+      for(auto board : status.value().vol){
+        for(auto voltage : board){
+          Serial.write((std::to_string(voltage / 10) + "\r\n").c_str());
+        }
+      }
       Serial.write("\r\n");
     }
   }
@@ -115,4 +119,6 @@ void loop()
   Serial.write("__LOOP__\r\n");
   // BatteryModuleBalancingLoop();
   DebugVolTempLoop();
+
+  // delay(500);
 }

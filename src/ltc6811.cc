@@ -118,6 +118,7 @@ void LTC6811::ClearAuxRegisters(void) {
 std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void) {
     LTC6811VoltageStatus status{};
     size_t count{ 0 };
+    std::array<uint32_t, kDaisyChainLength> index_count{0};
 
     StartConversion(ADCV);
 
@@ -127,8 +128,13 @@ std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void) {
 
     for (const auto& register_group : cell_data) {
         for (const auto& Register : register_group.register_group) {
+            auto board_id = (count / 3 ) % kDaisyChainLength;
+           // Serial.write((std::to_string(board_id) + "\r\n").c_str());
             for (const auto voltage : Register.data) {
-                Serial.write((std::to_string(voltage) + "\r\n").c_str());
+                // Serial.write((std::to_string(index_count[board_id]++) + "\r\n").c_str());
+                // Serial.write((std::to_string(voltage) + "\r\n").c_str());
+                status.vol[board_id][index_count[board_id]++] = voltage;
+
                 status.sum += voltage;
                 
                 if (voltage < status.min) {
@@ -180,7 +186,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus() {
     for (const auto& register_group : temp_data) {
         for (const auto& Register : register_group.register_group) {
             for (auto data : Register.data) {
-                if(count < 5)
+                if(count >= 0)
                 {
                     int16_t temperature = Bvalue(data);
                     Serial.write((std::to_string(temperature) + "\r\n").c_str());

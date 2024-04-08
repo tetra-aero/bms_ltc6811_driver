@@ -26,7 +26,7 @@
 #define T_CYCLE_FAST_MAX 1185 // Measure 12 Cells
 
 constexpr static size_t kBytesPerRegister{8};
-constexpr static size_t kDaisyChainLength{1};
+constexpr static size_t kDaisyChainLength{3};
 constexpr static size_t kCommandLength{4};
 constexpr static uint8_t kDelta{100};
 
@@ -52,6 +52,7 @@ struct LTC6811RegisterGroup
 struct LTC6811VoltageStatus
 {
     int sum{0};
+    std::array<std::array<uint16_t,12>, kDaisyChainLength> vol;
     uint16_t min{std::numeric_limits<uint16_t>::max()};
     size_t min_id{0};
     uint16_t max{std::numeric_limits<uint16_t>::min()};
@@ -226,6 +227,8 @@ private:
         for (size_t i = 0; i < kBytesPerRegister * kDaisyChainLength; ++i) {
             serialized_data[i] = hspi.transfer(0xFF);
         }
+
+        digitalWrite(SS, HIGH);
         
         for (auto& Register : register_group.register_group) {
             if (Register.PEC != PEC15Calc(Register.data)) {
