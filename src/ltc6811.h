@@ -26,7 +26,7 @@
 #define T_CYCLE_FAST_MAX 1185 // Measure 12 Cells
 
 constexpr static size_t kBytesPerRegister{8};
-constexpr static size_t kDaisyChainLength{3};
+constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
 constexpr static uint8_t kDelta{100};
 
@@ -62,9 +62,9 @@ struct LTC6811VoltageStatus
 struct LTC6811TempStatus
 {
     std::array<std::array<int32_t,6>, kDaisyChainLength> temp;
-    int16_t min{std::numeric_limits<int16_t>::max()};
+    int32_t min{std::numeric_limits<int32_t>::max()};
     size_t min_id{0};
-    int16_t max{std::numeric_limits<int16_t>::min()};
+    int32_t max{std::numeric_limits<int32_t>::min()};
     size_t max_id{0};
 };
 
@@ -200,13 +200,6 @@ private:
         auto serialized_data = reinterpret_cast<uint8_t *>(&register_group);
         digitalWrite(SS, LOW);
         hspi.writeBytes(serialized_data,sizeof(register_group));
-        // hspi.writeBytes(register_group.command.data(),register_group.command.size());
-        // for(auto &x : register_group.register_group)
-        // {
-        // hspi.writeBytes(x.data.data(),x.data.size());
-        // hspi.transfer((x.PEC >> 8) & 0xFF);
-        // hspi.transfer(x.PEC & 0xFF);
-        // }
         digitalWrite(SS, HIGH);
         return false;
     }

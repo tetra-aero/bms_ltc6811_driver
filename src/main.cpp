@@ -28,27 +28,31 @@ void loop()
     if (status.has_value())
     {
       Serial.write("VOLTAGE:[V]\r\n");
-      for(auto board : status.value().vol){
-        for(auto voltage : board){
-          Serial.write((std::to_string(static_cast<float>(voltage) / 10000)+  "\r\n").c_str());
+      for (const auto board : status.value().vol)
+      {
+        for (const auto voltage : board)
+        {
+          Serial.write((std::to_string(static_cast<float>(voltage) / 10000) + "\r\n").c_str());
         }
       }
       Serial.write("\r\n");
     }
   }
-   
+
   {
     auto status = bms.GetTemperatureStatus();
     if (status.has_value())
     {
-      for(auto board : status.value().temp){
-        for(auto temp : board){
-          Serial.write((std::to_string(static_cast<float>(temp) / 1000)+  "\r\n").c_str());
+      for (const auto board : status.value().temp)
+      {
+        for (const auto temp : board)
+        {
+          Serial.write((std::to_string(static_cast<float>(temp) / 1000) + "\r\n").c_str());
         }
       }
       Serial.write("\r\nTemperature:[deg]\r\n");
-      Serial.write(("MAX: "+std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
-      Serial.write(("MIN: "+std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
+      Serial.write(("MAX: " + std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
+      Serial.write(("MIN: " + std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
       Serial.write("\r\n");
     }
   }
