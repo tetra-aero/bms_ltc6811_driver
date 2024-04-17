@@ -6,18 +6,17 @@
 - セルバランシング
 
 # 未動作確認
-
+- シャント抵抗周り
 
 # 放置
-- シャント抵抗周り
 
 ## プログラムのドキュメント
 
 ### ディージーチェーンの個数設定　
 `ltc6811.h`の`constexpr static size_t kDaisyChainLength{1};`を変更
 ### セル電圧
-std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void)
+`std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void)`
 ### サーミスタ温度
-std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus(void)
+`std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus(void)`
 ### SumofCells/DigitalPowerVoltage/AnalogPowerVoltage/InternalDieTemperature
-std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
+`std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()`
