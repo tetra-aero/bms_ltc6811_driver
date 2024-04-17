@@ -157,7 +157,6 @@ std::optional<LTC6811PWMRegisterStatus> LTC6811::GetPwmStatus()
 std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
 {
     StartConversion(ADSTAT);
-    // WakeFromIdle();
     for (size_t group = A; group <= D; ++group)
         if (!ReadStatusRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
