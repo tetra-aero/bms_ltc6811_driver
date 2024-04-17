@@ -156,17 +156,28 @@ std::optional<LTC6811PWMRegisterStatus> LTC6811::GetPwmStatus()
 
 std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
 {
+    LTC6811GeneralStatus status{};
     StartConversion(ADSTAT);
-    for (size_t group = A; group <= D; ++group)
+    for (size_t group = A; group <= B; ++group)
         if (!ReadStatusRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
-
+    size_t board_id{};
     for (const auto &register_group : status_registers)
     {
-        for (const auto &Register : register_group.register_group)
-        {
-        }
+        const auto &RegisterA = register_group.register_group[Group::A];
+        const auto &RegisterB = register_group.register_group[Group::B];
+        uint16_t sc = RegisterA.data[0];
+        uint16_t itmp = RegisterA.data[1];
+        uint16_t va = RegisterA.data[2];
+        uint16_t vd = RegisterB.data[0];
+        status.data[board_id].SumOfCells = sc * 100 / 1000000 * 20;
+        status.data[board_id].InternalDieTemp = itmp * 100 / 1000000 / (7.5 / 1000) - 273;
+        status.data[board_id].Vanalog = va * 100 / 1000000;
+        status.data[board_id].Vdigital = vd * 100 / 1000000;
+        board_id++;
     }
+
+    return status;
 }
 
 /* Generate a status report of the cell voltage register groups.
@@ -234,7 +245,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
     for (int i = 0; i < 3; i++)
     {
         StartConversion(ADAX);
-        // WakeFromIdle();
+
         for (size_t group = A; group <= D; ++group)
             if (!ReadAuxRegisterGroup(static_cast<Group>(group)))
                 return std::nullopt;

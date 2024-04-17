@@ -36,11 +36,7 @@ void setup()
 
 void loop()
 {
-
-  // Serial.write("__LOOP__\r\n");
   {
-    //
-    // delay(1000);
     auto status = bms.GetVoltageStatus();
     Serial.write("\r\n");
     if (status.has_value())
@@ -51,7 +47,6 @@ void loop()
       {
         for (const auto voltage : board)
         {
-          // Serial.write(("VOLTAGE:"+std::to_string(count_board)+"_"+std::to_string(count_cell++)+"[V]\r\n").c_str());
           Serial.write((std::to_string(static_cast<float>(voltage) / 10000) + ",").c_str());
         }
 

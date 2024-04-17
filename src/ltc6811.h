@@ -74,10 +74,14 @@ struct LTC6811TempStatus
 
 struct LTC6811GeneralStatus
 {
-    uint16_t sumOfAllCell;
-    int16_t internalDieTemp;
-    uint16_t vregVol;
-    uint16_t vregGdVol;
+    struct Data
+    {
+        uint16_t SumOfCells;
+        int16_t InternalDieTemp;
+        uint16_t Vdigital;
+        uint16_t Vanalog;
+    };
+    std::array<Data,kDaisyChainLength> data;
 };
 
 struct LTC6811PWMRegisterStatus
@@ -209,7 +213,7 @@ public:
 
 private:
     SPIClass &hspi;
-    
+
     DischargeMode discharge_mode{MaxOnly};
 
     LTC6811RegisterGroup<uint8_t> slave_cfg_tx{LTC6811Command{0x00, 0x01, 0x3D, 0x6E}};
@@ -220,7 +224,7 @@ private:
         LTC6811Command{0, 4, 7, 194}, LTC6811Command{0, 6, 154, 148}, LTC6811Command{0, 8, 94, 82}, LTC6811Command{0, 10, 195, 4}};
     std::array<LTC6811RegisterGroup<int16_t>, 2> temp_data{
         LTC6811Command{0, 12, 239, 204}, LTC6811Command{0, 14, 114, 154}};
-    std::array<LTC6811RegisterGroup<uint8_t>, 2> status_registers{
+    std::array<LTC6811RegisterGroup<uint16_t>, 2> status_registers{
         LTC6811Command{0x00, 0x10, 0xED, 0x72}, LTC6811Command{0x00, 0x12, 0x70, 0x24}};
 
     /* Write Register Function. Return 0 if success, 1 if failure. */
@@ -296,7 +300,7 @@ private:
         0xa76f, 0x62f6, 0x69c4, 0xac5d, 0x7fa0, 0xba39, 0xb10b, 0x7492, 0x5368, 0x96f1, 0x9dc3, 0x585a, 0x8ba7, 0x4e3e, 0x450c, 0x8095};
 
     /* This has been tested against the original code and is working properly */
-    public :
+public:
     template <typename T, size_t S>
     constexpr static uint16_t PEC15Calc(const std::array<T, S> &data, size_t size = S * sizeof(T))
     {
