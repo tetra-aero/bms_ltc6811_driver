@@ -21,6 +21,7 @@ void setup()
 
 void loop()
 {
+
   Serial.write("__LOOP__\r\n");
   {
     auto status = bms.GetVoltageStatus();
@@ -35,27 +36,34 @@ void loop()
           Serial.write((std::to_string(static_cast<float>(voltage) / 10000) + "\r\n").c_str());
         }
       }
-      Serial.write("\r\n");
-    }
+      // bms.BuildDischargeConfig(status.value());
+      // delay(1000);
+      // bms.ClearDischargeConfig();
+    }    
   }
 
-  {
-    auto status = bms.GetTemperatureStatus();
-    if (status.has_value())
-    {
-      for (const auto board : status.value().temp)
-      {
-        for (const auto temp : board)
-        {
-          Serial.write((std::to_string(static_cast<float>(temp) / 1000) + "\r\n").c_str());
-        }
-      }
-      Serial.write("\r\nTemperature:[deg]\r\n");
-      Serial.write(("MAX: " + std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
-      Serial.write(("MIN: " + std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
-      Serial.write("\r\n");
-    }
-  }
+  // {
+  //   auto status = bms.GetTemperatureStatus();
+  //   if (status.has_value())
+  //   {
+  //     // for (const auto board : status.value().temp)
+  //     // {
+  //     //   for (const auto temp : board)
+  //     //   {
+  //     //     Serial.write((std::to_string(static_cast<float>(temp) / 1000) + "\r\n").c_str());
+  //     //   }
+  //     // }
+  //     Serial.write("\r\nTemperature:[deg]\r\n");
+  //     Serial.write(("MAX: " + std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
+  //     Serial.write(("MIN: " + std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
+  //     Serial.write("\r\n");
+  //   }
+  // }
+
+
+  delay(1000);
+}
+
   // {
   //   auto status = pm.GetBusVoltage();
   //   if (status.has_value())
@@ -92,6 +100,3 @@ void loop()
   //     Serial.write("\r\n");
   //   }
   // }
-
-  delay(1000);
-}

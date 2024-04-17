@@ -37,7 +37,7 @@ LTC6811::LTC6811(SPIClass &hspi, Mode mode, DCP dcp, CellCh cell, AuxCh aux, STS
     ADSTAT[2] = static_cast<uint8_t>(PEC >> 8);
     ADSTAT[3] = static_cast<uint8_t>(PEC);
 
-    slave_cfg_tx.register_group.fill({0xFE, 0, 0, 0, 0, 0});
+    // slave_cfg_tx.register_group.fill({0xFE, 0, 0, 0, 0, 0});
 
     WakeFromSleep(); // TODO Takes 2.2s to fall asleep so if this has to be called after this, we have problems
 }
@@ -123,6 +123,22 @@ void LTC6811::ClearAuxRegisters(void)
     digitalWrite(SS, HIGH);
 }
 
+std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
+{
+    StartConversion(ADSTAT);
+
+    for (size_t group = A; group <= D; ++group)
+        if (!ReadStatusRegisterGroup(static_cast<Group>(group)))
+            return std::nullopt;
+
+    for (const auto &register_group : status_registers)
+    {
+        for (const auto &Register : register_group.register_group)
+        {
+        }
+    }
+}
+
 /* Generate a status report of the cell voltage register groups.
  * Returns an LTC6811VoltageStatus on success, nullopt if error
  */
@@ -137,17 +153,17 @@ std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void)
     for (size_t group = A; group <= D; ++group)
         if (!ReadVoltageRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
+    for (size_t group = A; group <= D; ++group)
+        if (!ReadVoltageRegisterGroup(static_cast<Group>(group)))
+            return std::nullopt;
 
     for (const auto &register_group : cell_data)
     {
         for (const auto &Register : register_group.register_group)
         {
             auto board_id = (count / 3) % kDaisyChainLength;
-            // Serial.write((std::to_string(board_id) + "\r\n").c_str());
             for (const auto voltage : Register.data)
             {
-                // Serial.write((std::to_string(index_count[board_id]++) + "\r\n").c_str());
-                // Serial.write((std::to_string(voltage) + "\r\n").c_str());
                 status.vol[board_id][index_count[board_id]++] = voltage;
 
                 status.sum += voltage;
@@ -187,7 +203,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
         return static_cast<int32_t>(((1 / TempInv) * 1000 - 273150));
     };
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 3; i++)
     {
         StartConversion(ADAX);
 
@@ -213,7 +229,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
                     {
                         int32_t temperature = Bvalue(data);
                         status.temp[board_id][index_count[board_id]++] = temperature;
-                        // Serial.write((std::to_string(data) + "\r\n").c_str());
+
                         if (temperature < status.min)
                         {
                             status.min = temperature;
@@ -248,16 +264,14 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
 
             for (const auto &register_group : cell_data)
             { // 4 voltage register groups
-                for (const auto voltage : register_group.register_group[current_ic--].data)
+                for (const auto voltage : register_group.register_group[current_ic].data)
                 { // 3 voltages per IC
-                    Serial.println(std::to_string(voltage).c_str());
-                    Serial.println();
                     if (voltage > voltage_status.min + kDelta)
                         DCCx |= (1 << current_cell);
                     ++current_cell;
                 } // 4 * 3 = 12 voltages associated with each LTC6811 in the daisy chain
             }
-            Serial.println(std::to_string(DCCx).c_str());
+            current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
             cfg_register.PEC = PEC15Calc(cfg_register.data);
@@ -269,7 +283,10 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
         {
             current_ic = voltage_status.max_id / 3 % 12;
             DCCx |= 1 << voltage_status.max_id % 11;
-
+            // DCCx = 16; ////
+            // current_ic = 0;
+            // DCCx = 128;
+            DCCx = 512;
             slave_cfg_tx.register_group[current_ic].data[4] = DCCx & 0xFF;
             slave_cfg_tx.register_group[current_ic].data[5] = DCCx >> 8 & 0xF;
             slave_cfg_tx.register_group[current_ic].PEC = PEC15Calc(slave_cfg_tx.register_group[current_ic].data);
@@ -286,23 +303,53 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
 
             for (const auto &register_group : cell_data)
             { // 4 voltage register groups
-                for (const auto voltage : register_group.register_group[current_ic--].data)
+                for (const auto voltage : register_group.register_group[current_ic].data)
                 { // 3 voltages per IC
                     if (voltage > average_voltage + kDelta)
                         DCCx |= 1 << current_cell;
                     ++current_cell;
                 } // 4 * 3 = 12 voltages associated with each LTC6811 in the daisy chain
             }
-
+            current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
             cfg_register.PEC = PEC15Calc(cfg_register.data);
         }
         break;
     }
+
     WriteConfigRegisterGroup();
     delayMicroseconds(500); // TODO take this out. Just read when we need the data to send over CAN or whatever
     ReadConfigRegisterGroup();
+    Serial.println();
+    for (auto x : slave_cfg_rx.register_group)
+    {
+        for (auto y : x.data)
+        {
+            Serial.write((std::to_string(y) + " ").c_str());
+        }
+    }
+}
+
+void LTC6811::ClearDischargeConfig()
+{
+    // uint16_t DCCx = 0;
+    // uint8_t current_cell{0}, current_ic{kDaisyChainLength - 1};
+    // slave_cfg_tx.register_group[current_ic].data[4] = DCCx & 0xFF;
+    // slave_cfg_tx.register_group[current_ic].data[5] = DCCx >> 8 & 0xF;
+    // slave_cfg_tx.register_group[current_ic].PEC = PEC15Calc(slave_cfg_tx.register_group[current_ic].data);
+
+    // WriteConfigRegisterGroup();
+    // delayMicroseconds(500); // TODO take this out. Just read when we need the data to send over CAN or whatever
+    ReadConfigRegisterGroup();
+    Serial.println();
+    for (auto x : slave_cfg_rx.register_group)
+    {
+        for (auto y : x.data)
+        {
+            Serial.write((std::to_string(y) + " ").c_str());
+        }
+    }
 }
 
 /* Start a conversion */

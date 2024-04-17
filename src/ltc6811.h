@@ -28,7 +28,7 @@
 constexpr static size_t kBytesPerRegister{8};
 constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
-constexpr static uint8_t kDelta{100};
+constexpr static uint8_t kDelta{10};
 
 using LTC6811Command = std::array<uint8_t, kCommandLength>;
 
@@ -52,7 +52,7 @@ struct LTC6811RegisterGroup
 struct LTC6811VoltageStatus
 {
     int sum{0};
-    std::array<std::array<uint16_t,12>, kDaisyChainLength> vol;
+    std::array<std::array<uint16_t, 12>, kDaisyChainLength> vol;
     uint16_t min{std::numeric_limits<uint16_t>::max()};
     size_t min_id{0};
     uint16_t max{std::numeric_limits<uint16_t>::min()};
@@ -61,11 +61,19 @@ struct LTC6811VoltageStatus
 
 struct LTC6811TempStatus
 {
-    std::array<std::array<int32_t,6>, kDaisyChainLength> temp;
+    std::array<std::array<int32_t, 6>, kDaisyChainLength> temp;
     int32_t min{std::numeric_limits<int32_t>::max()};
     size_t min_id{0};
     int32_t max{std::numeric_limits<int32_t>::min()};
     size_t max_id{0};
+};
+
+struct LTC6811GeneralStatus
+{
+    uint16_t sumOfAllCell;
+    int16_t internalDieTemp;
+    uint16_t vregVol;
+    uint16_t vregGdVol;
 };
 
 class LTC6811
@@ -131,7 +139,7 @@ public:
         GTMeanPlusDelta
     };
 
-    LTC6811(SPIClass &hspi, Mode mode = Mode::Normal, DCP dcp = DCP::Disabled,
+    LTC6811(SPIClass &hspi, Mode mode = Mode::Normal, DCP dcp = DCP::Enabled,
             CellCh cell = AllCell, AuxCh aux = AllAux, STSCh sts = AllStat);
 
     void WakeFromSleep(void);
@@ -158,6 +166,10 @@ public:
     /* Clear the LTC6811 Auxiliary registers. */
     void ClearAuxRegisters(void);
 
+    void ClearDischargeConfig(void);
+
+    [[nodiscard]] std::optional<LTC6811GeneralStatus> GetGeneralStatus(void);
+
     [[nodiscard]] std::optional<LTC6811VoltageStatus> GetVoltageStatus(void);
 
     [[nodiscard]] std::optional<LTC6811TempStatus> GetTemperatureStatus(void);
@@ -174,7 +186,7 @@ public:
 private:
     SPIClass &hspi;
 
-    DischargeMode discharge_mode{GTMinPlusDelta};
+    DischargeMode discharge_mode{MaxOnly};
 
     LTC6811RegisterGroup<uint8_t> slave_cfg_tx{LTC6811Command{0x00, 0x01, 0x3D, 0x6E}};
     LTC6811RegisterGroup<uint8_t> slave_cfg_rx{LTC6811Command{0x00, 0x02, 0x2B, 0x0A}};
@@ -197,9 +209,22 @@ private:
     bool WriteRegisterGroup(LTC6811RegisterGroup<T> &register_group)
     {
         WakeFromIdle();
-        auto serialized_data = reinterpret_cast<uint8_t *>(&register_group);
         digitalWrite(SS, LOW);
-        hspi.writeBytes(serialized_data,sizeof(register_group));
+        hspi.writeBytes(register_group.command.data(), sizeof(register_group.command));
+        std::array<uint8_t,8> packet{0};
+        int index{};
+        for(auto x : register_group.register_group){
+            for(auto y: x.data){
+                packet[index++] = y;
+            }
+            packet[index++] = (x.PEC >> 8) & 0xFF; 
+            packet[index++] = x.PEC & 0xFF;
+                     
+        }
+        for(auto x : packet){
+            Serial.write((std::to_string(x) + " ").c_str());
+        }
+        hspi.writeBytes(packet.data(),packet.size());
         digitalWrite(SS, HIGH);
         return false;
     }
@@ -218,14 +243,17 @@ private:
 
         digitalWrite(SS, LOW);
 
-        for (size_t i = 0; i < kBytesPerRegister * kDaisyChainLength; ++i) {
+        for (size_t i = 0; i < kBytesPerRegister * kDaisyChainLength; ++i)
+        {
             serialized_data[i] = hspi.transfer(0xFF);
         }
 
-        // digitalWrite(SS, HIGH);
-        
-        for (auto& Register : register_group.register_group) {
-            if (Register.PEC != PEC15Calc(Register.data)) {
+        digitalWrite(SS, HIGH);
+
+        for (auto &Register : register_group.register_group)
+        {
+            if (Register.PEC != PEC15Calc(Register.data))
+            {
                 return 1; // PEC error
             }
         }
