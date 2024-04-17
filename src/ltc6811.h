@@ -28,7 +28,7 @@
 constexpr static size_t kBytesPerRegister{8};
 constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
-constexpr static uint8_t kDelta{10};
+constexpr static uint8_t kDelta{40};
 
 using LTC6811Command = std::array<uint8_t, kCommandLength>;
 
@@ -51,12 +51,16 @@ struct LTC6811RegisterGroup
 
 struct LTC6811VoltageStatus
 {
+    using board_id = uint8_t;
+    using cell_id = uint8_t;
     int sum{0};
     std::array<std::array<uint16_t, 12>, kDaisyChainLength> vol;
     uint16_t min{std::numeric_limits<uint16_t>::max()};
-    size_t min_id{0};
+    std::pair<board_id, cell_id> min_id{0xFF, 0xFF};
+    // size_t min_id{0};
     uint16_t max{std::numeric_limits<uint16_t>::min()};
-    size_t max_id{0};
+    std::pair<board_id, cell_id> max_id{0xFF, 0xFF};
+    // size_t max_id{0};
 };
 
 struct LTC6811TempStatus
@@ -74,6 +78,11 @@ struct LTC6811GeneralStatus
     int16_t internalDieTemp;
     uint16_t vregVol;
     uint16_t vregGdVol;
+};
+
+struct LTC6811PWMRegisterStatus
+{
+    std::array<std::array<uint8_t, 12>, kDaisyChainLength> pwm;
 };
 
 class LTC6811
@@ -145,6 +154,10 @@ public:
     void WakeFromSleep(void);
     void WakeFromIdle(void);
 
+    bool WritePWMRegisterGroup(void);
+
+    bool ReadPWMRegisterGroup(void);
+
     /* Read from an LTC6811 cell voltage register group. */
     bool ReadVoltageRegisterGroup(Group const group);
 
@@ -168,6 +181,8 @@ public:
 
     void ClearDischargeConfig(void);
 
+    [[nodiscard]] std::optional<LTC6811PWMRegisterStatus> GetPwmStatus(void);
+
     [[nodiscard]] std::optional<LTC6811GeneralStatus> GetGeneralStatus(void);
 
     [[nodiscard]] std::optional<LTC6811VoltageStatus> GetVoltageStatus(void);
@@ -176,26 +191,14 @@ public:
 
     void BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status);
 
+    void SetPwmDuty();
+
     void SetDischargeMode(DischargeMode const discharge_mode) noexcept
     {
         this->discharge_mode = discharge_mode;
     };
 
     [[nodiscard]] const auto &GetCellData() const noexcept { return cell_data; };
-
-private:
-    SPIClass &hspi;
-
-    DischargeMode discharge_mode{MaxOnly};
-
-    LTC6811RegisterGroup<uint8_t> slave_cfg_tx{LTC6811Command{0x00, 0x01, 0x3D, 0x6E}};
-    LTC6811RegisterGroup<uint8_t> slave_cfg_rx{LTC6811Command{0x00, 0x02, 0x2B, 0x0A}};
-    std::array<LTC6811RegisterGroup<uint16_t>, 4> cell_data{
-        LTC6811Command{0, 4, 7, 194}, LTC6811Command{0, 6, 154, 148}, LTC6811Command{0, 8, 94, 82}, LTC6811Command{0, 10, 195, 4}};
-    std::array<LTC6811RegisterGroup<int16_t>, 2> temp_data{
-        LTC6811Command{0, 12, 239, 204}, LTC6811Command{0, 14, 114, 154}};
-    std::array<LTC6811RegisterGroup<uint8_t>, 2> status_registers{
-        LTC6811Command{0x00, 0x10, 0xED, 0x72}, LTC6811Command{0x00, 0x12, 0x70, 0x24}};
 
     LTC6811Command ADCV;   // Cell Voltage conversion command
     LTC6811Command ADAX;   // Aux conversion command
@@ -204,6 +207,22 @@ private:
     /* Start a Cell Voltage, Aux, Status, etc. Conversion */
     void StartConversion(const LTC6811Command &command);
 
+private:
+    SPIClass &hspi;
+    
+    DischargeMode discharge_mode{MaxOnly};
+
+    LTC6811RegisterGroup<uint8_t> slave_cfg_tx{LTC6811Command{0x00, 0x01, 0x3D, 0x6E}};
+    LTC6811RegisterGroup<uint8_t> slave_cfg_rx{LTC6811Command{0x00, 0x02, 0x2B, 0x0A}};
+    LTC6811RegisterGroup<uint8_t> slave_pwm_tx{LTC6811Command{0x00, 0x20, 0x00, 0x00}};
+    LTC6811RegisterGroup<uint8_t> slave_pwm_rx{LTC6811Command{0x00, 0x22, 0x9D, 0x56}};
+    std::array<LTC6811RegisterGroup<uint16_t>, 4> cell_data{
+        LTC6811Command{0, 4, 7, 194}, LTC6811Command{0, 6, 154, 148}, LTC6811Command{0, 8, 94, 82}, LTC6811Command{0, 10, 195, 4}};
+    std::array<LTC6811RegisterGroup<int16_t>, 2> temp_data{
+        LTC6811Command{0, 12, 239, 204}, LTC6811Command{0, 14, 114, 154}};
+    std::array<LTC6811RegisterGroup<uint8_t>, 2> status_registers{
+        LTC6811Command{0x00, 0x10, 0xED, 0x72}, LTC6811Command{0x00, 0x12, 0x70, 0x24}};
+
     /* Write Register Function. Return 0 if success, 1 if failure. */
     template <typename T>
     bool WriteRegisterGroup(LTC6811RegisterGroup<T> &register_group)
@@ -211,20 +230,18 @@ private:
         WakeFromIdle();
         digitalWrite(SS, LOW);
         hspi.writeBytes(register_group.command.data(), sizeof(register_group.command));
-        std::array<uint8_t,8> packet{0};
+        std::array<uint8_t, 8 * kDaisyChainLength> packet{0};
         int index{};
-        for(auto x : register_group.register_group){
-            for(auto y: x.data){
+        for (auto x : register_group.register_group)
+        {
+            for (auto y : x.data)
+            {
                 packet[index++] = y;
             }
-            packet[index++] = (x.PEC >> 8) & 0xFF; 
+            packet[index++] = (x.PEC >> 8) & 0xFF;
             packet[index++] = x.PEC & 0xFF;
-                     
         }
-        for(auto x : packet){
-            Serial.write((std::to_string(x) + " ").c_str());
-        }
-        hspi.writeBytes(packet.data(),packet.size());
+        hspi.writeBytes(packet.data(), packet.size());
         digitalWrite(SS, HIGH);
         return false;
     }
@@ -279,6 +296,7 @@ private:
         0xa76f, 0x62f6, 0x69c4, 0xac5d, 0x7fa0, 0xba39, 0xb10b, 0x7492, 0x5368, 0x96f1, 0x9dc3, 0x585a, 0x8ba7, 0x4e3e, 0x450c, 0x8095};
 
     /* This has been tested against the original code and is working properly */
+    public :
     template <typename T, size_t S>
     constexpr static uint16_t PEC15Calc(const std::array<T, S> &data, size_t size = S * sizeof(T))
     {
@@ -294,5 +312,4 @@ private:
         return PEC << 1; // From documentation: The final PEC is the 15-bit value in the PEC register with a 0 bit appended to its LSB.
     }
 };
-
 #endif /* LTC6811_H_ */

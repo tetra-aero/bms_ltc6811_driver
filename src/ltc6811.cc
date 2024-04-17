@@ -37,7 +37,7 @@ LTC6811::LTC6811(SPIClass &hspi, Mode mode, DCP dcp, CellCh cell, AuxCh aux, STS
     ADSTAT[2] = static_cast<uint8_t>(PEC >> 8);
     ADSTAT[3] = static_cast<uint8_t>(PEC);
 
-    // slave_cfg_tx.register_group.fill({0xFE, 0, 0, 0, 0, 0});
+    slave_cfg_tx.register_group.fill({0xFC, 0, 0, 0, 0, 0});
 
     WakeFromSleep(); // TODO Takes 2.2s to fall asleep so if this has to be called after this, we have problems
 }
@@ -63,6 +63,16 @@ void LTC6811::WakeFromIdle(void)
         hspi.transfer(data);
         digitalWrite(SS, HIGH);
     }
+}
+
+bool LTC6811::ReadPWMRegisterGroup(void)
+{
+    return ReadRegisterGroup(slave_pwm_rx);
+}
+
+bool LTC6811::WritePWMRegisterGroup(void)
+{
+    return WriteRegisterGroup(slave_pwm_tx);
 }
 
 /* Read a cell voltage register group of an LTC6811 daisy chain.
@@ -103,9 +113,7 @@ bool LTC6811::WriteConfigRegisterGroup(void)
 void LTC6811::ClearVoltageRegisters(void)
 {
     constexpr static LTC6811Command command{7, 17, 201, 192};
-
     WakeFromIdle();
-
     digitalWrite(SS, LOW);
     hspi.writeBytes(command.data(), kCommandLength);
     digitalWrite(SS, HIGH);
@@ -115,18 +123,41 @@ void LTC6811::ClearVoltageRegisters(void)
 void LTC6811::ClearAuxRegisters(void)
 {
     constexpr static LTC6811Command command{7, 18, 223, 164};
-
     WakeFromIdle();
-
     digitalWrite(SS, LOW);
     hspi.writeBytes(command.data(), kCommandLength);
     digitalWrite(SS, HIGH);
 }
 
+std::optional<LTC6811PWMRegisterStatus> LTC6811::GetPwmStatus()
+{
+    LTC6811PWMRegisterStatus status{};
+    WakeFromIdle();
+
+    if (!ReadPWMRegisterGroup())
+    {
+        return std::nullopt;
+    }
+    size_t board_id{};
+    size_t cell_id{};
+    for (const auto &register_group : slave_pwm_rx.register_group)
+    {
+        for (const auto &data : register_group.data)
+        {
+            status.pwm[board_id][cell_id++] = data & 0x0F;
+            status.pwm[board_id][cell_id++] = (data >> 4) & 0x0F;
+        }
+        cell_id = 0;
+        board_id++;
+    }
+
+    return status;
+}
+
 std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
 {
     StartConversion(ADSTAT);
-
+    // WakeFromIdle();
     for (size_t group = A; group <= D; ++group)
         if (!ReadStatusRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
@@ -149,10 +180,7 @@ std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void)
     std::array<uint32_t, kDaisyChainLength> index_count{0};
 
     StartConversion(ADCV);
-
-    for (size_t group = A; group <= D; ++group)
-        if (!ReadVoltageRegisterGroup(static_cast<Group>(group)))
-            return std::nullopt;
+    // WakeFromIdle();
     for (size_t group = A; group <= D; ++group)
         if (!ReadVoltageRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
@@ -164,20 +192,21 @@ std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void)
             auto board_id = (count / 3) % kDaisyChainLength;
             for (const auto voltage : Register.data)
             {
-                status.vol[board_id][index_count[board_id]++] = voltage;
+                status.vol[board_id][index_count[board_id]] = voltage;
 
                 status.sum += voltage;
 
                 if (voltage < status.min)
                 {
                     status.min = voltage;
-                    status.min_id = count;
+                    status.min_id = {board_id, index_count[board_id]};
                 }
                 else if (voltage > status.max)
                 {
                     status.max = voltage;
-                    status.max_id = count;
+                    status.max_id = {board_id, index_count[board_id]};
                 }
+                index_count[board_id]++;
                 ++count;
             }
         }
@@ -206,7 +235,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
     for (int i = 0; i < 3; i++)
     {
         StartConversion(ADAX);
-
+        // WakeFromIdle();
         for (size_t group = A; group <= D; ++group)
             if (!ReadAuxRegisterGroup(static_cast<Group>(group)))
                 return std::nullopt;
@@ -260,17 +289,12 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
         for (auto &cfg_register : slave_cfg_tx.register_group)
         {
             DCCx = 0;
-            current_cell = 0;
-
-            for (const auto &register_group : cell_data)
-            { // 4 voltage register groups
-                for (const auto voltage : register_group.register_group[current_ic].data)
-                { // 3 voltages per IC
-                    if (voltage > voltage_status.min + kDelta)
-                        DCCx |= (1 << current_cell);
-                    ++current_cell;
-                } // 4 * 3 = 12 voltages associated with each LTC6811 in the daisy chain
+            for (int cell{}; cell < 12; cell++)
+            {
+                if (voltage_status.vol[current_ic][cell] > voltage_status.min + kDelta)
+                    DCCx |= (1 << cell);
             }
+            Serial.println(std::to_string(DCCx).c_str());
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
@@ -281,12 +305,10 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
     case MaxOnly:
         if (voltage_status.max - voltage_status.min > kDelta)
         {
-            current_ic = voltage_status.max_id / 3 % 12;
-            DCCx |= 1 << voltage_status.max_id % 11;
-            // DCCx = 16; ////
-            // current_ic = 0;
-            // DCCx = 128;
-            DCCx = 512;
+            current_ic = voltage_status.max_id.first;
+            Serial.println();
+            // Serial.println(("Discarge : " + std::to_string(voltage_status.max_id.first) + "-" + std::to_string(voltage_status.max_id.second)).c_str());
+            DCCx |= 1 << voltage_status.max_id.second;
             slave_cfg_tx.register_group[current_ic].data[4] = DCCx & 0xFF;
             slave_cfg_tx.register_group[current_ic].data[5] = DCCx >> 8 & 0xF;
             slave_cfg_tx.register_group[current_ic].PEC = PEC15Calc(slave_cfg_tx.register_group[current_ic].data);
@@ -300,15 +322,10 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
         {
             DCCx = 0;
             current_cell = 0;
-
-            for (const auto &register_group : cell_data)
-            { // 4 voltage register groups
-                for (const auto voltage : register_group.register_group[current_ic].data)
-                { // 3 voltages per IC
-                    if (voltage > average_voltage + kDelta)
-                        DCCx |= 1 << current_cell;
-                    ++current_cell;
-                } // 4 * 3 = 12 voltages associated with each LTC6811 in the daisy chain
+            for (int cell{}; cell < 12; cell++)
+            {
+                if (voltage_status.vol[current_ic][cell] > average_voltage + kDelta)
+                    DCCx |= (1 << cell);
             }
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
@@ -317,10 +334,27 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
         }
         break;
     }
-
     WriteConfigRegisterGroup();
     delayMicroseconds(500); // TODO take this out. Just read when we need the data to send over CAN or whatever
     ReadConfigRegisterGroup();
+    // Serial.println();
+    // for (auto x : slave_cfg_rx.register_group)
+    // {
+    //     for (auto y : x.data)
+    //     {
+    //         Serial.write((std::to_string(y) + " ").c_str());
+    //     }
+    // }
+}
+
+void LTC6811::SetPwmDuty()
+{
+    slave_pwm_tx.register_group[0].data = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    slave_pwm_tx.register_group[0].PEC = PEC15Calc(slave_pwm_tx.register_group[0].data);
+    WritePWMRegisterGroup();
+    delayMicroseconds(500);
+    ReadPWMRegisterGroup();
+
     Serial.println();
     for (auto x : slave_cfg_rx.register_group)
     {
@@ -333,23 +367,22 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
 
 void LTC6811::ClearDischargeConfig()
 {
-    // uint16_t DCCx = 0;
-    // uint8_t current_cell{0}, current_ic{kDaisyChainLength - 1};
-    // slave_cfg_tx.register_group[current_ic].data[4] = DCCx & 0xFF;
-    // slave_cfg_tx.register_group[current_ic].data[5] = DCCx >> 8 & 0xF;
-    // slave_cfg_tx.register_group[current_ic].PEC = PEC15Calc(slave_cfg_tx.register_group[current_ic].data);
-
-    // WriteConfigRegisterGroup();
-    // delayMicroseconds(500); // TODO take this out. Just read when we need the data to send over CAN or whatever
+    uint16_t DCCx = 0;
+    uint8_t current_cell{0}, current_ic{kDaisyChainLength - 1};
+    slave_cfg_tx.register_group[current_ic].data[4] = DCCx & 0xFF;
+    slave_cfg_tx.register_group[current_ic].data[5] = DCCx >> 8 & 0xF;
+    slave_cfg_tx.register_group[current_ic].PEC = PEC15Calc(slave_cfg_tx.register_group[current_ic].data);
+    WriteConfigRegisterGroup();
+    delayMicroseconds(500); // TODO take this out. Just read when we need the data to send over CAN or whatever
     ReadConfigRegisterGroup();
-    Serial.println();
-    for (auto x : slave_cfg_rx.register_group)
-    {
-        for (auto y : x.data)
-        {
-            Serial.write((std::to_string(y) + " ").c_str());
-        }
-    }
+    // Serial.println();
+    // for (auto x : slave_cfg_rx.register_group)
+    // {
+    //     for (auto y : x.data)
+    //     {
+    //         Serial.write((std::to_string(y) + " ").c_str());
+    //     }
+    // }
 }
 
 /* Start a conversion */
@@ -362,6 +395,10 @@ void LTC6811::StartConversion(const LTC6811Command &command)
     hspi.writeBytes(command.data(), kCommandLength); // Start cell voltage conversion.
     delayMicroseconds(500);
     digitalWrite(SS, HIGH);
+
+    // while(!digitalRead(MOSI)){
+    //     delayMicroseconds(100);
+    // }
 
     delayMicroseconds((T_REFUP_MAX + T_CYCLE_FAST_MAX)); // TODO we aren't in fast conversion mode??? Also these delays aren't in the Linduino library
 }
