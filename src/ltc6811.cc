@@ -132,7 +132,6 @@ void LTC6811::ClearAuxRegisters(void)
 std::optional<LTC6811PWMRegisterStatus> LTC6811::GetPwmStatus()
 {
     LTC6811PWMRegisterStatus status{};
-    WakeFromIdle();
 
     if (!ReadPWMRegisterGroup())
     {
@@ -158,23 +157,36 @@ std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
 {
     LTC6811GeneralStatus status{};
     StartConversion(ADSTAT);
+
     for (size_t group = A; group <= B; ++group)
         if (!ReadStatusRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
     size_t board_id{};
+    size_t register_count{};
     for (const auto &register_group : status_registers)
     {
-        const auto &RegisterA = register_group.register_group[Group::A];
-        const auto &RegisterB = register_group.register_group[Group::B];
-        uint16_t sc = RegisterA.data[0];
-        uint16_t itmp = RegisterA.data[1];
-        uint16_t va = RegisterA.data[2];
-        uint16_t vd = RegisterB.data[0];
-        status.data[board_id].SumOfCells = sc * 100 / 1000000 * 20;
-        status.data[board_id].InternalDieTemp = itmp * 100 / 1000000 / (7.5 / 1000) - 273;
-        status.data[board_id].Vanalog = va * 100 / 1000000;
-        status.data[board_id].Vdigital = vd * 100 / 1000000;
-        board_id++;
+        board_id = 0;
+        for (const auto &Register : register_group.register_group)
+        {
+
+            int register_number = (register_count >= kDaisyChainLength) ? 0 : 1;
+            if (register_number == 0)
+            {
+                uint16_t sc = Register.data[0];
+                uint16_t itmp = Register.data[1];
+                uint16_t va = Register.data[2];
+                status.data[board_id].SumOfCells = static_cast<float>(sc) / 10000.0 * 20.0;
+                status.data[board_id].InternalDieTemp = (static_cast<float>(itmp) / 10.0 / 7.5) - 273.15;
+                status.data[board_id].Vanalog = static_cast<float>(va) / 10000.0;
+            }
+            else if (register_number == 1)
+            {
+                uint16_t vd = Register.data[0];
+                status.data[board_id].Vdigital = static_cast<float>(vd) / 10000.0;
+            }
+            register_count++;
+            board_id++;
+        }
     }
 
     return status;
@@ -190,7 +202,6 @@ std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void)
     std::array<uint32_t, kDaisyChainLength> index_count{0};
 
     StartConversion(ADCV);
-    // WakeFromIdle();
     for (size_t group = A; group <= D; ++group)
         if (!ReadVoltageRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
@@ -245,11 +256,10 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
     for (int i = 0; i < 3; i++)
     {
         StartConversion(ADAX);
-
-        for (size_t group = A; group <= D; ++group)
-            if (!ReadAuxRegisterGroup(static_cast<Group>(group)))
-                return std::nullopt;
     }
+    for (size_t group = A; group <= B; ++group)
+        if (!ReadAuxRegisterGroup(static_cast<Group>(group)))
+            return std::nullopt;
 
     for (const auto &register_group : temp_data)
     {

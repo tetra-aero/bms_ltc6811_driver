@@ -38,7 +38,7 @@ private:
         BRNG1,
         RST
     };
-
+    
     static constexpr double MAX_SHUNT_VOLTAGE = 320.0;
     static constexpr double SHUNT_RESISTANCE = 0.1;
     /* Create bit mask 
@@ -181,7 +181,7 @@ public:
     std::optional<float> GetCurrent()
     {
         auto result = read_register(REG::CURRENT);
-        if (result.has_value())
+        if (result.has_value())              
         {
             return static_cast<int16_t>(result.value()) * factor_current();
         }
