@@ -7,6 +7,8 @@
 LTC6811 bms(SPI);
 ISL28022 pm(Wire, 0b1000000);
 
+static constexpr bool DISCHARGE = true; 
+
 void discharge_cell(std::optional<LTC6811VoltageStatus> &&status)
 {
   bms.BuildDischargeConfig(status.value());
@@ -54,8 +56,11 @@ void loop()
       Serial.write(("DIF: " + std::to_string(static_cast<float>(status.value().max - status.value().min) / 10000) + "\r\n").c_str());
       Serial.write(("SUM: " + std::to_string(static_cast<float>(status.value().sum) / 10000) + "\r\n").c_str());
       Serial.println();
-      // discharge_cell(std::move(status));
-      // delay(1000);
+      if(DISCHARGE){
+        discharge_cell(std::move(status));
+      }else{
+        delay(1000);
+      }
     }
   }
 
@@ -97,7 +102,7 @@ void loop()
   //     Serial.write("\r\n");
   //   }
   // }
-  delay(1000);
+  // delay(1000);
 }
 
 // {
