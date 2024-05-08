@@ -253,7 +253,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
         return static_cast<int32_t>(((1 / TempInv) * 1000 - 273150));
     };
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 1; i++)
     {
         StartConversion(ADAX);
     }
@@ -314,6 +314,7 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
                 if (voltage_status.vol[current_ic][cell] > voltage_status.min + kDelta)
                     DCCx |= (1 << cell);
             }
+            Serial.println(("Discarge : " + std::to_string(DCCx)).c_str());
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
