@@ -83,25 +83,25 @@ void loop()
   //   }
   // }
 
-  // {
-  //   Serial.println();
-  //   auto status = bms.GetTemperatureStatus();
-  //   if (status.has_value())
-  //   {
-  //     for (const auto board : status.value().temp)
-  //     {
-  //       for (const auto temp : board)
-  //       {
-  //         Serial.write((std::to_string(static_cast<float>(temp) / 1000) + ",").c_str());
-  //       }
-  //       Serial.println();
-  //     }
-  //     Serial.write("\r\nTemperatures:[deg]\r\n");
-  //     Serial.write(("MAX: " + std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
-  //     Serial.write(("MIN: " + std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
-  //     Serial.write("\r\n");
-  //   }
-  // }
+  {
+    Serial.println();
+    auto status = bms.GetTemperatureStatus();
+    if (status.has_value())
+    {
+      for (const auto board : status.value().temp)
+      {
+        for (const auto temp : board)
+        {
+          Serial.write((std::to_string(static_cast<float>(temp) / 1000) + ",").c_str());
+        }
+        Serial.println();
+      }
+      Serial.write("\r\nTemperatures:[deg]\r\n");
+      Serial.write(("MAX: " + std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
+      Serial.write(("MIN: " + std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
+      Serial.write("\r\n");
+    }
+  }
   // delay(1000);
 }
 
