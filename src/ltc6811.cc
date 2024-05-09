@@ -268,27 +268,24 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
             auto board_id = (count / 3) % kDaisyChainLength;
             for (auto data : Register.data)
             {
-                if (count >= 0)
+                if (index_count[board_id] == 5)
                 {
-                    if (index_count[board_id] == 5)
-                    {
-                        status.temp[board_id][index_count[board_id]++] = data;
-                    }
-                    else
-                    {
-                        int32_t temperature = Bvalue(data);
-                        status.temp[board_id][index_count[board_id]++] = temperature;
+                    status.vref2[board_id] = data;
+                }
+                else
+                {
+                    int32_t temperature = Bvalue(data);
+                    status.temp[board_id][index_count[board_id]++] = temperature;
 
-                        if (temperature < status.min)
-                        {
-                            status.min = temperature;
-                            status.min_id = count;
-                        }
-                        if (temperature > status.max)
-                        {
-                            status.max = temperature;
-                            status.max_id = count;
-                        }
+                    if (temperature < status.min)
+                    {
+                        status.min = temperature;
+                        status.min_id = count;
+                    }
+                    if (temperature > status.max)
+                    {
+                        status.max = temperature;
+                        status.max_id = count;
                     }
                 }
                 ++count;
@@ -374,7 +371,7 @@ void LTC6811::SetPwmDuty(uint8_t ratio)
     for (auto &register_group : slave_pwm_tx.register_group)
     {
         uint8_t pwm_reg_val = static_cast<uint8_t>((ratio) << 4 | ratio);
-        register_group.data = {pwm_reg_val,pwm_reg_val,pwm_reg_val,pwm_reg_val,pwm_reg_val,pwm_reg_val};
+        register_group.data = {pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val};
         register_group.PEC = PEC15Calc(register_group.data);
     }
     WritePWMRegisterGroup();

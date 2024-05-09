@@ -65,7 +65,8 @@ struct LTC6811VoltageStatus
 
 struct LTC6811TempStatus
 {
-    std::array<std::array<int32_t, 6>, kDaisyChainLength> temp;
+    std::array<std::array<int32_t, 5>, kDaisyChainLength> temp;
+    std::array<int32_t, kDaisyChainLength> vref2;
     int32_t min{std::numeric_limits<int32_t>::max()};
     size_t min_id{0};
     int32_t max{std::numeric_limits<int32_t>::min()};
