@@ -14,7 +14,7 @@ void discharge_cell(std::optional<LTC6811VoltageStatus> &&status)
   bms.BuildDischargeConfig(status.value());
   delay(1000);
   bms.ClearDischargeConfig();
-  delay(1);
+  delay(10); // 電圧が回復するまで待ちたい
 }
 
 SPISettings mySPISettings = SPISettings(1000000, MSBFIRST, SPI_MODE0);
