@@ -152,6 +152,26 @@ public:
         GTMeanPlusDelta
     };
 
+    enum Duty
+    {
+        Ratio_1_16,
+        Ratio_2_16,
+        Ratio_3_16,
+        Ratio_4_16,
+        Ratio_5_16,
+        Ratio_6_16,
+        Ratio_7_16,
+        Ratio_8_16,
+        Ratio_9_16,
+        Ratio_10_16,
+        Ratio_11_16,
+        Ratio_12_16,
+        Ratio_13_16,
+        Ratio_14_16,
+        Ratio_15_16,
+        Ratio_16_16,
+    };
+
     LTC6811(SPIClass &hspi, Mode mode = Mode::Normal, DCP dcp = DCP::Enabled,
             CellCh cell = AllCell, AuxCh aux = AllAux, STSCh sts = AllStat);
 
@@ -195,7 +215,7 @@ public:
 
     void BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status);
 
-    void SetPwmDuty();
+    void SetPwmDuty(uint8_t ratio);
 
     void SetDischargeMode(DischargeMode const discharge_mode) noexcept
     {
@@ -214,7 +234,7 @@ public:
 private:
     SPIClass &hspi;
 
-    DischargeMode discharge_mode{GTMinPlusDelta};
+    DischargeMode discharge_mode{GTMeanPlusDelta};
 
     LTC6811RegisterGroup<uint8_t> slave_cfg_tx{LTC6811Command{0x00, 0x01, 0x3D, 0x6E}};
     LTC6811RegisterGroup<uint8_t> slave_cfg_rx{LTC6811Command{0x00, 0x02, 0x2B, 0x0A}};

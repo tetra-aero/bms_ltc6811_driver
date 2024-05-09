@@ -306,7 +306,7 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
     switch (discharge_mode)
     {
     case GTMinPlusDelta:
-        for (auto &cfg_register : slave_cfg_tx.register_group) //　前から n-1, n-2, ..., 0
+        for (auto &cfg_register : slave_cfg_tx.register_group) // 　前から n-1, n-2, ..., 0
         {
             DCCx = 0;
             for (int cell{}; cell < 12; cell++)
@@ -346,6 +346,7 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
                 if (voltage_status.vol[current_ic][cell] > average_voltage + kDelta)
                     DCCx |= (1 << cell);
             }
+            Serial.println(("Discarge : " + std::to_string(DCCx)).c_str());
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
@@ -363,16 +364,17 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
     //     {
     //         Serial.write((std::to_string(y) + " ").c_str());
     //     }
-    
+
     // }
     // Serial.println();
 }
 
-void LTC6811::SetPwmDuty()
+void LTC6811::SetPwmDuty(uint8_t ratio)
 {
     for (auto &register_group : slave_pwm_tx.register_group)
     {
-        register_group.data = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+        uint8_t pwm_reg_val = static_cast<uint8_t>((ratio) << 4 | ratio);
+        register_group.data = {pwm_reg_val,pwm_reg_val,pwm_reg_val,pwm_reg_val,pwm_reg_val,pwm_reg_val};
         register_group.PEC = PEC15Calc(register_group.data);
     }
     WritePWMRegisterGroup();
@@ -380,7 +382,7 @@ void LTC6811::SetPwmDuty()
     ReadPWMRegisterGroup();
 
     Serial.println();
-    for (auto x : slave_cfg_rx.register_group)
+    for (auto x : slave_pwm_rx.register_group)
     {
         for (auto y : x.data)
         {
