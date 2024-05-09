@@ -253,10 +253,14 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
         return static_cast<int32_t>(((1 / TempInv) * 1000 - 273150));
     };
 
+    /*
     for (int i = 0; i < 3; i++)
     {
         StartConversion(ADAX);
     }
+    */
+    StartConversion(ADAX);
+
     for (size_t group = A; group <= B; ++group)
         if (!ReadAuxRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
