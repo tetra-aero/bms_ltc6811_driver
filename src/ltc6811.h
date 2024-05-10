@@ -28,7 +28,8 @@
 constexpr static size_t kBytesPerRegister{8};
 constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
-constexpr static uint8_t kDelta{40};
+constexpr static uint32_t kDelta{100};
+constexpr static uint32_t tolerantTemp{80000}; // 80度 
 
 using LTC6811Command = std::array<uint8_t, kCommandLength>;
 
@@ -57,15 +58,14 @@ struct LTC6811VoltageStatus
     std::array<std::array<uint16_t, 12>, kDaisyChainLength> vol;
     uint16_t min{std::numeric_limits<uint16_t>::max()};
     std::pair<board_id, cell_id> min_id{0xFF, 0xFF};
-    // size_t min_id{0};
     uint16_t max{std::numeric_limits<uint16_t>::min()};
     std::pair<board_id, cell_id> max_id{0xFF, 0xFF};
-    // size_t max_id{0};
 };
 
 struct LTC6811TempStatus
 {
-    std::array<std::array<int32_t, 6>, kDaisyChainLength> temp;
+    std::array<std::array<int32_t, 5>, kDaisyChainLength> temp;
+    std::array<int32_t, kDaisyChainLength> vref2;
     int32_t min{std::numeric_limits<int32_t>::max()};
     size_t min_id{0};
     int32_t max{std::numeric_limits<int32_t>::min()};
@@ -152,10 +152,31 @@ public:
         GTMeanPlusDelta
     };
 
+    enum Duty
+    {
+        Ratio_1_16,
+        Ratio_2_16,
+        Ratio_3_16,
+        Ratio_4_16,
+        Ratio_5_16,
+        Ratio_6_16,
+        Ratio_7_16,
+        Ratio_8_16,
+        Ratio_9_16,
+        Ratio_10_16,
+        Ratio_11_16,
+        Ratio_12_16,
+        Ratio_13_16,
+        Ratio_14_16,
+        Ratio_15_16,
+        Ratio_16_16,
+    };
+
     LTC6811(SPIClass &hspi, Mode mode = Mode::Normal, DCP dcp = DCP::Enabled,
             CellCh cell = AllCell, AuxCh aux = AllAux, STSCh sts = AllStat);
 
     void WakeFromSleep(void);
+
     void WakeFromIdle(void);
 
     bool WritePWMRegisterGroup(void);
@@ -193,9 +214,9 @@ public:
 
     [[nodiscard]] std::optional<LTC6811TempStatus> GetTemperatureStatus(void);
 
-    void BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status);
+    void BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status,  const LTC6811TempStatus &temp_status);
 
-    void SetPwmDuty();
+    void SetPwmDuty(uint8_t ratio);
 
     void SetDischargeMode(DischargeMode const discharge_mode) noexcept
     {
@@ -214,7 +235,7 @@ public:
 private:
     SPIClass &hspi;
 
-    DischargeMode discharge_mode{MaxOnly};
+    DischargeMode discharge_mode{GTMeanPlusDelta};
 
     LTC6811RegisterGroup<uint8_t> slave_cfg_tx{LTC6811Command{0x00, 0x01, 0x3D, 0x6E}};
     LTC6811RegisterGroup<uint8_t> slave_cfg_rx{LTC6811Command{0x00, 0x02, 0x2B, 0x0A}};

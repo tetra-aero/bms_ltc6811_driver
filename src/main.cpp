@@ -7,20 +7,22 @@
 LTC6811 bms(SPI);
 ISL28022 pm(Wire, 0b1000000);
 
-static constexpr bool DISCHARGE = true; 
+static constexpr bool DISCHARGE = true;
 
-void discharge_cell(std::optional<LTC6811VoltageStatus> &&status)
+void discharge_cell(std::optional<LTC6811VoltageStatus> &vol_status, std::optional<LTC6811TempStatus> &temp_status)
 {
-  bms.BuildDischargeConfig(status.value());
+  if (!(vol_status.has_value() && temp_status.has_value()))
+    return;
+
+  bms.BuildDischargeConfig(vol_status.value(), temp_status.value());
   delay(1000);
   bms.ClearDischargeConfig();
-  delay(1);
+  delay(10); // <------電圧が回復するまで待ちたい
 }
 
 SPISettings mySPISettings = SPISettings(1000000, MSBFIRST, SPI_MODE0);
 void setup()
 {
-
   SPI.begin();
   SPI.beginTransaction(mySPISettings);
   // Wire.begin();
@@ -30,18 +32,19 @@ void setup()
   pinMode(SS, OUTPUT);
   // pinMode(MISO,INPUT);
   Serial.println("cell 0, cell 1, cell 2, cell 3, cell 4, cell 5, cell 6, cell 7, cell 8, cell 9, cell 10, cell 11,");
-  // bms.SetPwmDuty();
+  bms.SetPwmDuty(LTC6811::Duty::Ratio_8_16);
 }
 
 void loop()
 {
   {
     Serial.println();
-    auto status = bms.GetVoltageStatus();
+    auto vol_status = bms.GetVoltageStatus();
+    auto temp_status = bms.GetTemperatureStatus();
 
-    if (status.has_value())
+    if (vol_status.has_value())
     {
-      for (const auto board : status.value().vol)
+      for (const auto board : vol_status.value().vol)
       {
         for (const auto voltage : board)
         {
@@ -51,14 +54,29 @@ void loop()
       }
       Serial.println();
       Serial.write("\r\nCellVoltages:[V]\r\n");
-      Serial.write(("MAX: " + std::to_string(static_cast<float>(status.value().max) / 10000) + "\r\n").c_str());
-      Serial.write(("MIN: " + std::to_string(static_cast<float>(status.value().min) / 10000) + "\r\n").c_str());
-      Serial.write(("DIF: " + std::to_string(static_cast<float>(status.value().max - status.value().min) / 10000) + "\r\n").c_str());
-      Serial.write(("SUM: " + std::to_string(static_cast<float>(status.value().sum) / 10000) + "\r\n").c_str());
+      Serial.write(("MAX: " + std::to_string(static_cast<float>(vol_status.value().max) / 10000) + "\r\n").c_str());
+      Serial.write(("MIN: " + std::to_string(static_cast<float>(vol_status.value().min) / 10000) + "\r\n").c_str());
+      Serial.write(("DIF: " + std::to_string(static_cast<float>(vol_status.value().max - vol_status.value().min) / 10000) + "\r\n").c_str());
+      Serial.write(("SUM: " + std::to_string(static_cast<float>(vol_status.value().sum) / 10000) + "\r\n").c_str());
       Serial.println();
-      if(DISCHARGE){
-        discharge_cell(std::move(status));
-      }else{
+      for (const auto board : temp_status.value().temp)
+      {
+        for (const auto temp : board)
+        {
+          Serial.write((std::to_string(static_cast<float>(temp) / 1000) + ",").c_str());
+        }
+        Serial.println();
+      }
+      Serial.write("\r\nTemperatures:[deg]\r\n");
+      Serial.write(("MAX: " + std::to_string(static_cast<float>(temp_status.value().max) / 1000) + "\r\n").c_str());
+      Serial.write(("MIN: " + std::to_string(static_cast<float>(temp_status.value().min) / 1000) + "\r\n").c_str());
+      Serial.write("\r\n");
+      if (DISCHARGE)
+      {
+        discharge_cell(vol_status, temp_status);
+      }
+      else
+      {
         delay(1000);
       }
     }
@@ -79,7 +97,7 @@ void loop()
   //       Serial.write(("AnalogPower: " + std::to_string(static_cast<float>(board.Vanalog)) + ",").c_str());
   //       Serial.println();
   //     }
-      
+
   //   }
   // }
 

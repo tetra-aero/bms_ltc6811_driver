@@ -253,7 +253,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
         return static_cast<int32_t>(((1 / TempInv) * 1000 - 273150));
     };
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 1; i++)
     {
         StartConversion(ADAX);
     }
@@ -268,27 +268,24 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
             auto board_id = (count / 3) % kDaisyChainLength;
             for (auto data : Register.data)
             {
-                if (count >= 0)
+                if (index_count[board_id] == 5)
                 {
-                    if (index_count[board_id] == 5)
-                    {
-                        status.temp[board_id][index_count[board_id]++] = data;
-                    }
-                    else
-                    {
-                        int32_t temperature = Bvalue(data);
-                        status.temp[board_id][index_count[board_id]++] = temperature;
+                    status.vref2[board_id] = data;
+                }
+                else
+                {
+                    int32_t temperature = Bvalue(data);
+                    status.temp[board_id][index_count[board_id]++] = temperature;
 
-                        if (temperature < status.min)
-                        {
-                            status.min = temperature;
-                            status.min_id = count;
-                        }
-                        if (temperature > status.max)
-                        {
-                            status.max = temperature;
-                            status.max_id = count;
-                        }
+                    if (temperature < status.min)
+                    {
+                        status.min = temperature;
+                        status.min_id = count;
+                    }
+                    if (temperature > status.max)
+                    {
+                        status.max = temperature;
+                        status.max_id = count;
                     }
                 }
                 ++count;
@@ -298,7 +295,7 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
     return status;
 }
 
-void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
+void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, const LTC6811TempStatus &temp_status)
 {
     uint16_t DCCx{0};
     uint8_t current_cell{0}, current_ic{kDaisyChainLength - 1};
@@ -306,14 +303,27 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
     switch (discharge_mode)
     {
     case GTMinPlusDelta:
-        for (auto &cfg_register : slave_cfg_tx.register_group) //　前から n-1, n-2, ..., 0
+        for (auto &cfg_register : slave_cfg_tx.register_group) // 　前から n-1, n-2, ..., 0
         {
             DCCx = 0;
-            for (int cell{}; cell < 12; cell++)
+            bool overTemp = false;
+
+            for (auto temp : temp_status.temp[current_ic])
             {
-                if (voltage_status.vol[current_ic][cell] > voltage_status.min + kDelta)
-                    DCCx |= (1 << cell);
+                if (temp > tolerantTemp)
+                    overTemp = true;
             }
+
+            if (!overTemp)
+            {
+                for (int cell{}; cell < 12; cell++)
+                {
+                    if (voltage_status.vol[current_ic][cell] > voltage_status.min + kDelta)
+                        DCCx |= (1 << cell);
+                }
+            }
+
+            Serial.println(("Discarge : " + std::to_string(current_ic) + "-" + std::to_string(DCCx)).c_str());
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
@@ -325,8 +335,25 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
         if (voltage_status.max - voltage_status.min > kDelta)
         {
             current_ic = kDaisyChainLength - 1 - voltage_status.max_id.first;
-            Serial.println(("Discarge : " + std::to_string(voltage_status.max_id.first) + "-" + std::to_string(voltage_status.max_id.second)).c_str());
-            DCCx |= 1 << voltage_status.max_id.second;
+
+            bool overTemp = false;
+
+            for (auto temp : temp_status.temp[current_ic])
+            {
+                if (temp > tolerantTemp)
+                    overTemp = true;
+            }
+
+            if (!overTemp)
+            {
+                Serial.println(("Discarge : " + std::to_string(voltage_status.max_id.first) + "-" + std::to_string(voltage_status.max_id.second)).c_str());
+                DCCx |= 1 << voltage_status.max_id.second;
+            }
+            else
+            {
+                Serial.println("OverTemp");
+            }
+
             slave_cfg_tx.register_group[current_ic].data[4] = DCCx & 0xFF;
             slave_cfg_tx.register_group[current_ic].data[5] = DCCx >> 8 & 0xF;
             slave_cfg_tx.register_group[current_ic].PEC = PEC15Calc(slave_cfg_tx.register_group[current_ic].data);
@@ -340,11 +367,25 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
         {
             DCCx = 0;
             current_cell = 0;
-            for (int cell{}; cell < 12; cell++)
+            bool overTemp = false;
+
+            for (auto temp : temp_status.temp[current_ic])
             {
-                if (voltage_status.vol[current_ic][cell] > average_voltage + kDelta)
-                    DCCx |= (1 << cell);
+                if (temp > tolerantTemp)
+                    overTemp = true;
             }
+
+            if (!overTemp)
+            {
+                for (int cell{}; cell < 12; cell++)
+                {
+                    if (voltage_status.vol[current_ic][cell] > average_voltage + kDelta)
+                        DCCx |= (1 << cell);
+                }
+            } else {
+                Serial.println("OverTemp");
+            } 
+            Serial.println(("Discarge : " + std::to_string(current_ic) + "-" + std::to_string(DCCx)).c_str());
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
@@ -362,16 +403,17 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status)
     //     {
     //         Serial.write((std::to_string(y) + " ").c_str());
     //     }
-    
+
     // }
     // Serial.println();
 }
 
-void LTC6811::SetPwmDuty()
+void LTC6811::SetPwmDuty(uint8_t ratio)
 {
     for (auto &register_group : slave_pwm_tx.register_group)
     {
-        register_group.data = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+        uint8_t pwm_reg_val = static_cast<uint8_t>((ratio) << 4 | ratio);
+        register_group.data = {pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val};
         register_group.PEC = PEC15Calc(register_group.data);
     }
     WritePWMRegisterGroup();
@@ -379,7 +421,7 @@ void LTC6811::SetPwmDuty()
     ReadPWMRegisterGroup();
 
     Serial.println();
-    for (auto x : slave_cfg_rx.register_group)
+    for (auto x : slave_pwm_rx.register_group)
     {
         for (auto y : x.data)
         {
