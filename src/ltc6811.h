@@ -28,7 +28,8 @@
 constexpr static size_t kBytesPerRegister{8};
 constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
-constexpr static uint8_t kDelta{40};
+constexpr static uint32_t kDelta{100};
+constexpr static uint32_t tolerantTemp{80000}; // 80度 
 
 using LTC6811Command = std::array<uint8_t, kCommandLength>;
 
@@ -57,10 +58,8 @@ struct LTC6811VoltageStatus
     std::array<std::array<uint16_t, 12>, kDaisyChainLength> vol;
     uint16_t min{std::numeric_limits<uint16_t>::max()};
     std::pair<board_id, cell_id> min_id{0xFF, 0xFF};
-    // size_t min_id{0};
     uint16_t max{std::numeric_limits<uint16_t>::min()};
     std::pair<board_id, cell_id> max_id{0xFF, 0xFF};
-    // size_t max_id{0};
 };
 
 struct LTC6811TempStatus
@@ -177,6 +176,7 @@ public:
             CellCh cell = AllCell, AuxCh aux = AllAux, STSCh sts = AllStat);
 
     void WakeFromSleep(void);
+
     void WakeFromIdle(void);
 
     bool WritePWMRegisterGroup(void);
@@ -214,7 +214,7 @@ public:
 
     [[nodiscard]] std::optional<LTC6811TempStatus> GetTemperatureStatus(void);
 
-    void BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status);
+    void BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status,  const LTC6811TempStatus &temp_status);
 
     void SetPwmDuty(uint8_t ratio);
 
