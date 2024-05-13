@@ -42,7 +42,7 @@ void loop()
     auto vol_status = bms.GetVoltageStatus();
     auto temp_status = bms.GetTemperatureStatus();
 
-    if (vol_status.has_value())
+    if (vol_status.has_value() && temp_status.has_value())
     {
       for (const auto &board : vol_status.value().vol)
       {
