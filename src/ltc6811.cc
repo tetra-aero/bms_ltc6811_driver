@@ -156,11 +156,13 @@ std::optional<LTC6811PWMRegisterStatus> LTC6811::GetPwmStatus()
 std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
 {
     LTC6811GeneralStatus status{};
+
     StartConversion(ADSTAT);
 
     for (size_t group = A; group <= B; ++group)
         if (!ReadStatusRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
+
     size_t board_id{};
     size_t register_count{};
     for (const auto &register_group : status_registers)
@@ -169,8 +171,8 @@ std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
         for (const auto &Register : register_group.register_group)
         {
 
-            int register_number = (register_count >= kDaisyChainLength) ? 0 : 1;
-            if (register_number == 0)
+            int register_number = (register_count >= kDaisyChainLength) ? Group::B : Group::A;
+            if (register_number == Group::A)
             {
                 uint16_t sc = Register.data[0];
                 uint16_t itmp = Register.data[1];
@@ -179,7 +181,7 @@ std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()
                 status.data[board_id].InternalDieTemp = (static_cast<float>(itmp) / 10.0 / 7.5) - 273.15;
                 status.data[board_id].Vanalog = static_cast<float>(va) / 10000.0;
             }
-            else if (register_number == 1)
+            else if (register_number == Group::B)
             {
                 uint16_t vd = Register.data[0];
                 status.data[board_id].Vdigital = static_cast<float>(vd) / 10000.0;
@@ -202,6 +204,7 @@ std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void)
     std::array<uint32_t, kDaisyChainLength> index_count{0};
 
     StartConversion(ADCV);
+
     for (size_t group = A; group <= D; ++group)
         if (!ReadVoltageRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
@@ -253,10 +256,11 @@ std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus()
         return static_cast<int32_t>(((1 / TempInv) * 1000 - 273150));
     };
 
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 3; i++)
     {
         StartConversion(ADAX);
     }
+
     for (size_t group = A; group <= B; ++group)
         if (!ReadAuxRegisterGroup(static_cast<Group>(group)))
             return std::nullopt;
@@ -382,9 +386,11 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
                     if (voltage_status.vol[current_ic][cell] > average_voltage + kDelta)
                         DCCx |= (1 << cell);
                 }
-            } else {
+            }
+            else
+            {
                 Serial.println("OverTemp");
-            } 
+            }
             Serial.println(("Discarge : " + std::to_string(current_ic) + "-" + std::to_string(DCCx)).c_str());
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
