@@ -29,7 +29,7 @@ constexpr static size_t kBytesPerRegister{8};
 constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
 constexpr static uint32_t kDelta{100};
-constexpr static uint32_t tolerantTemp{60000}; // 60度 
+constexpr static uint32_t tolerantTemp{45000}; // 60度 
 
 using LTC6811Command = std::array<uint8_t, kCommandLength>;
 
