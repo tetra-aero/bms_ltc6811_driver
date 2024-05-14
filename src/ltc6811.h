@@ -28,7 +28,8 @@
 constexpr static size_t kBytesPerRegister{8};
 constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
-constexpr static uint32_t kDelta{30};
+constexpr static uint32_t kDeltaAbsolete{30};
+constexpr static uint32_t kDeltaTolerant{50};
 constexpr static uint32_t tolerantTemp{45000};
 
 using LTC6811Command = std::array<uint8_t, kCommandLength>;
@@ -172,6 +173,11 @@ public:
         Ratio_16_16,
     };
 
+    enum DisChargeState : uint8_t {
+        OverAbsoleteLine,
+        Complete,
+    };
+
     LTC6811(SPIClass &hspi, Mode mode = Mode::Normal, DCP dcp = DCP::Enabled,
             CellCh cell = AllCell, AuxCh aux = AllAux, STSCh sts = AllStat);
 
@@ -247,6 +253,8 @@ private:
         LTC6811Command{0, 12, 239, 204}, LTC6811Command{0, 14, 114, 154}};
     std::array<LTC6811RegisterGroup<uint16_t>, 2> status_registers{
         LTC6811Command{0x00, 0x10, 0xED, 0x72}, LTC6811Command{0x00, 0x12, 0x70, 0x24}};
+    
+    uint32_t barancing_state = {OverAbsoleteLine};
 
     /* Write Register Function. Return 0 if success, 1 if failure. */
     template <typename T>
