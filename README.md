@@ -20,3 +20,8 @@
 `std::optional<LTC6811TempStatus> LTC6811::GetTemperatureStatus(void)`
 ### SumofCells/DigitalPowerVoltage/AnalogPowerVoltage/InternalDieTemperature
 `std::optional<LTC6811GeneralStatus> LTC6811::GetGeneralStatus()`
+### 放電Duty比の設定
+- 16段階でDutyの設定ができる(enum Dutyを参照 https://github.com/tetra-aero/bms_ltc6811_driver/blob/54e087a0274dd7d074bec60e3700e185a260857c/src/ltc6811.h#L155)
+- LTC6811の機能としては，セルごとに設定できるがこのメソッドでは，すべてのセルに対して設定を適応する
+- Duty比 0.75の例: https://github.com/tetra-aero/bms_ltc6811_driver/blob/54e087a0274dd7d074bec60e3700e185a260857c/src/main.cpp#L35C1-L35C46
+`void LTC6811::SetPwmDuty(uint8_t ratio)`
