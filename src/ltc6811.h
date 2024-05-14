@@ -28,8 +28,8 @@
 constexpr static size_t kBytesPerRegister{8};
 constexpr static size_t kDaisyChainLength{1};
 constexpr static size_t kCommandLength{4};
-constexpr static uint32_t kDelta{100};
-constexpr static uint32_t tolerantTemp{80000}; // 80度 
+constexpr static uint32_t kDelta{30};
+constexpr static uint32_t tolerantTemp{45000}; // 60度 
 
 using LTC6811Command = std::array<uint8_t, kCommandLength>;
 
@@ -235,7 +235,7 @@ public:
 private:
     SPIClass &hspi;
 
-    DischargeMode discharge_mode{GTMeanPlusDelta};
+    DischargeMode discharge_mode{GTMinPlusDelta};
 
     LTC6811RegisterGroup<uint8_t> slave_cfg_tx{LTC6811Command{0x00, 0x01, 0x3D, 0x6E}};
     LTC6811RegisterGroup<uint8_t> slave_cfg_rx{LTC6811Command{0x00, 0x02, 0x2B, 0x0A}};
@@ -255,6 +255,7 @@ private:
         WakeFromIdle();
         digitalWrite(SS, LOW);
         hspi.writeBytes(register_group.command.data(), sizeof(register_group.command));
+
         std::array<uint8_t, 8 * kDaisyChainLength> packet{0};
         int index{};
         for (auto x : register_group.register_group)

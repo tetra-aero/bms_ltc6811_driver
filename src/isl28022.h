@@ -107,7 +107,7 @@ private:
     BusVoltage(V) = Reading Value / 4 *  VBUS_lsb(4mV)
     */
     constexpr double factor_busvoltage() {
-        return 0.004;
+        return 0.004 * 124;
     }
     /* Calculate Constant Current Value
     Current(mA) = Reading Value / (2^15) * (320) / ShuntRegistance */
@@ -134,6 +134,7 @@ public:
     void begin()
     {
         write_register(REG::CONFIG, make_mask(CONFIG::RST));
+        delay(10);
         // busvol = 60v, shuntvol = +-250mv, resolution = 15bit, detect both bus and shunt vol
         write_register(REG::CONFIG, make_mask(CONFIG::BRNG0, CONFIG::BRNG0, CONFIG::BRNG1, CONFIG::PG1, CONFIG::PG0, CONFIG::BADC1, CONFIG::BADC0, CONFIG::SADC1, CONFIG::SADC0, CONFIG::MODE0, CONFIG::MODE1, CONFIG::MODE2));
         write_register(REG::CALIB, 0x1062);
@@ -144,7 +145,7 @@ public:
         auto result = read_register(REG::SHUNTVOLT);
         if (result.has_value())
         {
-            return static_cast<int16_t>(result.value()) * factor_shuntvoltage();
+            return static_cast<float>(result.value()) * factor_shuntvoltage();
         }
         else
         {
@@ -152,12 +153,12 @@ public:
         }
     }
 
-    std::optional<float> GetBusVoltage()
+    std::optional<float> GetBusVoltage() //OK
     {
         auto result = read_register(REG::BUSVOLT);
         if (result.has_value())
         {
-            return (static_cast<int16_t>(result.value()) >> 2) * factor_busvoltage();
+            return (result.value() >> 2) * factor_busvoltage();
         }
         else
         {

@@ -17,7 +17,7 @@ void discharge_cell(std::optional<LTC6811VoltageStatus> &vol_status, std::option
   bms.BuildDischargeConfig(vol_status.value(), temp_status.value());
   delay(1000);
   bms.ClearDischargeConfig();
-  delay(10); // <------電圧が回復するまで待ちたい
+  delay(100); // <------電圧が回復するまで待ちたい
 }
 
 SPISettings mySPISettings = SPISettings(1000000, MSBFIRST, SPI_MODE0);
@@ -25,14 +25,14 @@ void setup()
 {
   SPI.begin();
   SPI.beginTransaction(mySPISettings);
-  // Wire.begin();
+  Wire.begin();
   Serial.begin(9600);
   delay(20);
-  // pm.begin();
+  pm.begin();
   pinMode(SS, OUTPUT);
-  // pinMode(MISO,INPUT);
+  pinMode(MISO, INPUT);
   Serial.println("cell 0, cell 1, cell 2, cell 3, cell 4, cell 5, cell 6, cell 7, cell 8, cell 9, cell 10, cell 11,");
-  bms.SetPwmDuty(LTC6811::Duty::Ratio_8_16);
+  bms.SetPwmDuty(LTC6811::Duty::Ratio_12_16);
 }
 
 void loop()
@@ -42,9 +42,9 @@ void loop()
     auto vol_status = bms.GetVoltageStatus();
     auto temp_status = bms.GetTemperatureStatus();
 
-    if (vol_status.has_value())
+    if (vol_status.has_value() && temp_status.has_value())
     {
-      for (const auto board : vol_status.value().vol)
+      for (const auto &board : vol_status.value().vol)
       {
         for (const auto voltage : board)
         {
@@ -59,7 +59,7 @@ void loop()
       Serial.write(("DIF: " + std::to_string(static_cast<float>(vol_status.value().max - vol_status.value().min) / 10000) + "\r\n").c_str());
       Serial.write(("SUM: " + std::to_string(static_cast<float>(vol_status.value().sum) / 10000) + "\r\n").c_str());
       Serial.println();
-      for (const auto board : temp_status.value().temp)
+      for (const auto &board : temp_status.value().temp)
       {
         for (const auto temp : board)
         {
@@ -84,7 +84,7 @@ void loop()
 
   // {
   //   Serial.println();
-  //   // delay(1000);
+  //   delay(1000);
   //   auto status = bms.GetGeneralStatus();
   //   if (status.has_value())
   //   {
