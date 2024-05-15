@@ -334,6 +334,7 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
             if (overTemp)
             {
                 Serial.println("OverTemp");
+                current_ic--;
                 continue;
             }
 
@@ -379,7 +380,6 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
 
             if (overTemp)
             {
-                Serial.println("OverTemp");
                 break;
             }
 
@@ -423,6 +423,7 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
             if (overTemp)
             {
                 Serial.println("OverTemp");
+                current_ic--;
                 continue;
             }
             for (int cell{}; cell < 12; cell++)
