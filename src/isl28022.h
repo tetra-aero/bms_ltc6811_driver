@@ -100,27 +100,27 @@ private:
     On 15bit, +-320mv, Mode, Voltage(mV) = Reading Value * (320 / 2^15) 
     */
     constexpr double factor_shuntvoltage(){
-        return MAX_SHUNT_VOLTAGE / std::numeric_limits<int16_t>::max();
+        return MAX_SHUNT_VOLTAGE / (std::numeric_limits<int16_t>::max() + 1);
     }
     /* Calculate Constant BusVoltage Value
     Reading Value is 14bit value(valid bit 15 ~ 2), So we have to div by (2^2)
     BusVoltage(V) = Reading Value / 4 *  VBUS_lsb(4mV)
     */
     constexpr double factor_busvoltage() {
-        return 0.004 * 124;
+        return 0.004 * 38.906;
     }
     /* Calculate Constant Current Value
     Current(mA) = Reading Value / (2^15) * (320) / ShuntRegistance */
     constexpr double factor_current()
     {
-        return MAX_SHUNT_VOLTAGE / SHUNT_RESISTANCE / std::numeric_limits<int16_t>::max();
+        return MAX_SHUNT_VOLTAGE / SHUNT_RESISTANCE / (std::numeric_limits<int16_t>::max() + 1);
     }
     /* Calculate Constant Power Value
     Power(W) = Reading Value * factor_current * factor_busvoltage * 5000
     */
     constexpr double factor_power()
     {
-        return 97.65625 * 5000.0 * 2.0 / 1000000.0;
+        return factor_busvoltage() * factor_current() * 5000.0 * 2.0 / 1000000.0;
     }
 
     uint8_t addr_;
@@ -145,7 +145,7 @@ public:
         auto result = read_register(REG::SHUNTVOLT);
         if (result.has_value())
         {
-            return static_cast<float>(result.value()) * factor_shuntvoltage();
+            return static_cast<int16_t>(result.value()) * factor_shuntvoltage();
         }
         else
         {
