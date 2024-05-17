@@ -55,7 +55,7 @@ void loop()
         }
       }
     }
-        {
+    {
       auto status = pm.GetBusVoltage();
       if (status.has_value())
       {
