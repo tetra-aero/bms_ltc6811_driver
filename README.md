@@ -43,4 +43,5 @@ https://github.com/tetra-aero/bms_ltc6811_driver/blob/b0f95185e32b73cf9b2c4d1f3a
 - 電力
 https://github.com/tetra-aero/bms_ltc6811_driver/blob/b0f95185e32b73cf9b2c4d1f3ab613a96bfe6ee7/src/isl28022.h#L169
 `std::optional<float> GetPower()`
-- 
+- それぞれの値の定数値の計算
+https://github.com/tetra-aero/bms_ltc6811_driver/blob/b0f95185e32b73cf9b2c4d1f3ab613a96bfe6ee7/src/isl28022.h#L102C5-L124C6
