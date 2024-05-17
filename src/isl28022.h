@@ -177,7 +177,6 @@ public:
         auto result = read_register(REG::POWER);
         if (result.has_value())
         {
-            Serial.println(("#power_raw" + std::to_string(result.value())).c_str());
             return result.value() * factor_power();
         }
         else
