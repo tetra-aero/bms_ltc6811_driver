@@ -254,7 +254,7 @@ private:
     std::array<LTC6811RegisterGroup<uint16_t>, 2> status_registers{
         LTC6811Command{0x00, 0x10, 0xED, 0x72}, LTC6811Command{0x00, 0x12, 0x70, 0x24}};
     
-    uint32_t barancing_state = {OverAbsoleteLine};
+    std::array<uint32_t, kDaisyChainLength> barancing_state = {OverAbsoleteLine};
 
     /* Write Register Function. Return 0 if success, 1 if failure. */
     template <typename T>
