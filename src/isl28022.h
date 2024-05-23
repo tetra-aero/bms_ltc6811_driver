@@ -126,7 +126,7 @@ private:
     }
 
     constexpr uint16_t calblation_value() {
-        return 0.04096 / (factor_current() * SHUNT_RESISTANCE);
+        return 0.04096 / (factor_current() * SHUNT_RESISTANCE) * 1000;
     } 
 
     uint8_t addr_;
