@@ -104,7 +104,7 @@ private:
     On 15bit, +-320mv, Mode, Voltage(mV) = Reading Value * (320 / 2^15) 
     */
     constexpr double factor_shuntvoltage(){
-        return MAX_SHUNT_VOLTAGE / (std::numeric_limits<int16_t>::max() + 1);
+        return MAX_SHUNT_VOLTAGE * AMC1301_GAIN * SHUNTVOL_RATIO / (std::numeric_limits<int16_t>::max() + 1);
     }
     /* Calculate Constant BusVoltage Value * BOARD_GAIN
     */
@@ -125,6 +125,10 @@ private:
         return factor_busvoltage() * factor_current() * 5000.0 * 2.0 / 1000000.0;
     }
 
+    constexpr uint16_t calblation_value() {
+        return 0.04096 / (factor_current() * SHUNT_RESISTANCE);
+    } 
+
     uint8_t addr_;
     TwoWire &hi2c_;
 
@@ -140,7 +144,7 @@ public:
         delay(10);
         // busvol = 60v, shuntvol = +-250mv, resolution = 15bit, detect both bus and shunt vol
         write_register(REG::CONFIG, make_mask(CONFIG::BRNG0, CONFIG::BRNG0, CONFIG::BRNG1, CONFIG::PG1, CONFIG::PG0, CONFIG::BADC1, CONFIG::BADC0, CONFIG::SADC1, CONFIG::SADC0, CONFIG::MODE0, CONFIG::MODE1, CONFIG::MODE2));
-        write_register(REG::CALIB, 0x1062);
+        write_register(REG::CALIB, calblation_value());
         delay(1000);
         Serial.println(("#factor_current " + std::to_string(factor_current())).c_str());
         Serial.println(("#factor_busvoltage " + std::to_string(factor_busvoltage())).c_str());
