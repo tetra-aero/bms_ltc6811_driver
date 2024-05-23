@@ -41,6 +41,10 @@ private:
     
     static constexpr double MAX_SHUNT_VOLTAGE = 320.0;
     static constexpr double SHUNT_RESISTANCE = 0.1;
+    static constexpr double AMC1301_GAIN = 8.2;
+    static constexpr double AMC1302_GAIN = 40;
+    static constexpr double BUSVOL_RATIO = 38.906;
+    static constexpr double SHUNTVOL_RATIO = 1 / (3.3 + 1 + 3.3);
     /* Create bit mask 
     return: uint16_t 
     argument: wake up bits min 0, max 15
@@ -102,18 +106,16 @@ private:
     constexpr double factor_shuntvoltage(){
         return MAX_SHUNT_VOLTAGE / (std::numeric_limits<int16_t>::max() + 1);
     }
-    /* Calculate Constant BusVoltage Value
-    Reading Value is 14bit value(valid bit 15 ~ 2), So we have to div by (2^2)
-    BusVoltage(V) = Reading Value / 4 *  VBUS_lsb(4mV)
+    /* Calculate Constant BusVoltage Value * Partial pressure ratio
     */
     constexpr double factor_busvoltage() {
-        return 0.004 * 38.906;
+        return 0.004 * BUSVOL_RATIO;
     }
     /* Calculate Constant Current Value
-    Current(mA) = Reading Value / (2^15) * (320) / ShuntRegistance */
+    Current(A) = Reading Value / (2^15) * (320) / ShuntRegistance */
     constexpr double factor_current()
     {
-        return MAX_SHUNT_VOLTAGE / SHUNT_RESISTANCE / (std::numeric_limits<int16_t>::max() + 1);
+        return MAX_SHUNT_VOLTAGE * AMC1301_GAIN * SHUNTVOL_RATIO  / SHUNT_RESISTANCE /(std::numeric_limits<int16_t>::max() + 1);
     }
     /* Calculate Constant Power Value
     Power(uW) = Reading Value * factor_current * factor_busvoltage * 5000
