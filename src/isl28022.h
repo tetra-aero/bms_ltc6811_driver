@@ -106,19 +106,19 @@ private:
     constexpr double factor_shuntvoltage(){
         return MAX_SHUNT_VOLTAGE / (std::numeric_limits<int16_t>::max() + 1);
     }
-    /* Calculate Constant BusVoltage Value * Partial pressure ratio
+    /* Calculate Constant BusVoltage Value * BOARD_GAIN
     */
     constexpr double factor_busvoltage() {
         return 0.004 * BUSVOL_RATIO;
     }
     /* Calculate Constant Current Value
-    Current(A) = Reading Value / (2^15) * (320) / ShuntRegistance */
+    Current(A) = Reading Value * BOARD_GAIN / (2^15) * (320) / ShuntRegistance */
     constexpr double factor_current()
     {
         return MAX_SHUNT_VOLTAGE * AMC1301_GAIN * SHUNTVOL_RATIO  / SHUNT_RESISTANCE /(std::numeric_limits<int16_t>::max() + 1);
     }
     /* Calculate Constant Power Value
-    Power(uW) = Reading Value * factor_current * factor_busvoltage * 5000
+    Power(W) = Reading Value * factor_current * factor_busvoltage * 5000 / 1000000
     */
     constexpr double factor_power()
     {
