@@ -141,11 +141,10 @@ public:
     void begin()
     {
         write_register(REG::CONFIG, make_mask(CONFIG::RST));
-        delay(10);
-        // busvol = 60v, shuntvol = +-250mv, resolution = 15bit, detect both bus and shunt vol
+        // busvol = 60v, shuntvol = +-320mv, resolution = 15bit, detect both bus and shunt vol
         write_register(REG::CONFIG, make_mask(CONFIG::BRNG0, CONFIG::BRNG0, CONFIG::BRNG1, CONFIG::PG1, CONFIG::PG0, CONFIG::BADC1, CONFIG::BADC0, CONFIG::SADC1, CONFIG::SADC0, CONFIG::MODE0, CONFIG::MODE1, CONFIG::MODE2));
         write_register(REG::CALIB, calblation_value());
-        delay(1000);
+        delay(10);
         Serial.println(("#factor_current " + std::to_string(factor_current())).c_str());
         Serial.println(("#factor_busvoltage " + std::to_string(factor_busvoltage())).c_str());
         Serial.println(("#factor_shuntvoltage " + std::to_string(factor_shuntvoltage())).c_str());
