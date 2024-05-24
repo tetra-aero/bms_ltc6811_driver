@@ -59,28 +59,28 @@ void loop()
       auto status = pm.GetBusVoltage();
       if (status.has_value())
       {
-        Serial.println(("ISLBUSVOLTAGE: " + std::to_string(status.value())).c_str());
+        Serial.println(("ISLBUSVOLTAGE(V): " + std::to_string(status.value())).c_str());
       }
     }
     {
       auto status = pm.GetCurrent();
       if (status.has_value())
       {
-        Serial.println(("ISLCURRENT: " + std::to_string(status.value())).c_str());
+        Serial.println(("ISLCURRENT(A): " + std::to_string(status.value())).c_str());
       }
     }
     {
       auto status = pm.GetShuntVoltage();
       if (status.has_value())
       {
-        Serial.println(("ISLSHUNTVOLTAGE: " + std::to_string(status.value())).c_str());
+        Serial.println(("ISLSHUNTVOLTAGE:(mV) " + std::to_string(status.value())).c_str());
       }
     }
     {
       auto status = pm.GetPower();
       if (status.has_value())
       {
-        Serial.println(("ISLPOWER: " + std::to_string(status.value())).c_str());
+        Serial.println(("ISLPOWER(W): " + std::to_string(status.value())).c_str());
       }
     }
   }
