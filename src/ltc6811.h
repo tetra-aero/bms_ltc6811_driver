@@ -26,7 +26,7 @@
 #define T_CYCLE_FAST_MAX 1185 // Measure 12 Cells
 
 constexpr static size_t kBytesPerRegister{8};
-constexpr static size_t kDaisyChainLength{2};
+constexpr static size_t kDaisyChainLength{4};
 constexpr static size_t kCommandLength{4};
 constexpr static uint32_t kDeltaAbsolete{30};
 constexpr static uint32_t kDeltaTolerant{50};
