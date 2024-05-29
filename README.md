@@ -29,4 +29,3 @@
 - ディージーチェーンの長さの設定 `kDaisyChainLength` https://github.com/tetra-aero/bms_ltc6811_driver/blob/f07c24927c33e81a0cd155b7a73bf68cf2515267/src/ltc6811.h#L29
 - 放電時に許容するPCB温度(45度の時,45000) `tolerantTemp` https://github.com/tetra-aero/bms_ltc6811_driver/blob/f07c24927c33e81a0cd155b7a73bf68cf2515267/src/ltc6811.h#L32
 - 放電時に許容するセル間電圧差(3mvの時,30) `kDelta` https://github.com/tetra-aero/bms_ltc6811_driver/blob/f07c24927c33e81a0cd155b7a73bf68cf2515267/src/ltc6811.h#L31
-### Notionの方に殆どのことが書かれているので確認お願いします．
