@@ -225,7 +225,7 @@ std::optional<LTC6811VoltageStatus> LTC6811::GetVoltageStatus(void)
                     status.min = voltage;
                     status.min_id = {board_id, index_count[board_id]};
                 }
-                else if (voltage > status.max)
+                if (voltage > status.max)
                 {
                     status.max = voltage;
                     status.max_id = {board_id, index_count[board_id]};
@@ -305,7 +305,8 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
     uint8_t current_cell{0}, current_ic{kDaisyChainLength - 1};
     uint8_t kDelta{0};
 
-    switch (barancing_state) //それぞれ状態のkDeltaの設定
+
+    switch (barancing_state) // それぞれ状態のkDeltaの設定
     {
     case OverAbsoleteLine:
         kDelta = kDeltaAbsolete;
@@ -338,26 +339,31 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
                 continue;
             }
 
+            Serial.print(("Discarge ic : " + std::to_string(current_ic) + " cell :").c_str());
             for (int cell{}; cell < 12; cell++)
             {
                 if (voltage_status.vol[current_ic][cell] > voltage_status.min + kDelta)
+                {
+                    Serial.print((std::to_string(cell) + ",").c_str());
                     DCCx |= (1 << cell);
+                }
             }
+            Serial.println();
 
-            if (DCCx == 0) //どのセルも放電していない時
+            if (DCCx == 0) // どのセルも放電していない時
             {
-                if (barancing_state == DisChargeState::OverAbsoleteLine) //状態が放電状態なら許容ラインまで判定条件を緩和する
+                if (barancing_state == DisChargeState::OverAbsoleteLine) // 状態が放電状態なら許容ラインまで判定条件を緩和する
                     barancing_state = DisChargeState::Complete;
             }
-            else  // どれか放電している時
+            else // どれか放電している時
             {
                 if (barancing_state == DisChargeState::Complete)
                 {
-                    barancing_state = DisChargeState::OverAbsoleteLine; //状態が完了状態ならkDeltaを絶対ラインまで引き下げる
+                    barancing_state = DisChargeState::OverAbsoleteLine; // 状態が完了状態ならkDeltaを絶対ラインまで引き下げる
+
                 }
             }
 
-            Serial.println(("Discarge : " + std::to_string(current_ic) + "-" + std::to_string(DCCx)).c_str());
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
@@ -386,16 +392,16 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
             Serial.println(("Discarge : " + std::to_string(voltage_status.max_id.first) + "-" + std::to_string(voltage_status.max_id.second)).c_str());
             DCCx |= 1 << voltage_status.max_id.second;
 
-             if (DCCx == 0) //どのセルも放電していない時
+            if (DCCx == 0) // どのセルも放電していない時
             {
-                if (barancing_state == DisChargeState::OverAbsoleteLine) //状態が放電状態なら許容ラインまで判定条件を緩和する
+                if (barancing_state == DisChargeState::OverAbsoleteLine) // 状態が放電状態なら許容ラインまで判定条件を緩和する
                     barancing_state = DisChargeState::Complete;
             }
-            else  // どれか放電している時
+            else // どれか放電している時
             {
                 if (barancing_state == DisChargeState::Complete)
                 {
-                    barancing_state = DisChargeState::OverAbsoleteLine; //状態が完了状態ならkDeltaを絶対ラインまで引き下げる
+                    barancing_state = DisChargeState::OverAbsoleteLine; // 状態が完了状態ならkDeltaを絶対ラインまで引き下げる
                 }
             }
 
@@ -426,26 +432,30 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
                 current_ic--;
                 continue;
             }
+
+            Serial.print(("Discarge ic : " + std::to_string(current_ic) + " cell :").c_str());
             for (int cell{}; cell < 12; cell++)
             {
                 if (voltage_status.vol[current_ic][cell] > average_voltage + kDelta)
+                {
+                    Serial.print((std::to_string(cell) + ",").c_str());
                     DCCx |= (1 << cell);
+                }
             }
+            Serial.println();
 
-            if (DCCx == 0) //どのセルも放電していない時
+            if (DCCx == 0) // どのセルも放電していない時
             {
-                if (barancing_state == DisChargeState::OverAbsoleteLine) //状態が放電状態なら許容ラインまで判定条件を緩和する
+                if (barancing_state == DisChargeState::OverAbsoleteLine) // 状態が放電状態なら許容ラインまで判定条件を緩和する
                     barancing_state = DisChargeState::Complete;
             }
-            else  // どれか放電している時
+            else // どれか放電している時
             {
                 if (barancing_state == DisChargeState::Complete)
                 {
-                    barancing_state = DisChargeState::OverAbsoleteLine; //状態が完了状態ならkDeltaを絶対ラインまで引き下げる
+                    barancing_state = DisChargeState::OverAbsoleteLine; // 状態が完了状態ならkDeltaを絶対ラインまで引き下げる
                 }
             }
-
-            Serial.println(("Discarge : " + std::to_string(current_ic) + "-" + std::to_string(DCCx)).c_str());
             current_ic--;
             cfg_register.data[4] |= DCCx & 0xFF;
             cfg_register.data[5] |= DCCx >> 8 & 0xF;
