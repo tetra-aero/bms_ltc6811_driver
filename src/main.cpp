@@ -1,11 +1,15 @@
 #include <Arduino.h>
 #include "ltc6811.h"
 #include "isl28022.h"
+#include "estimate.h"
 
 #include <string>
+#include <functional>
+#include <optional>
 
 LTC6811 bms(SPI);
 ISL28022 pm(Wire, 0b1000000);
+Estimator estimator();
 
 static constexpr bool DISCHARGE = true;
 
@@ -40,40 +44,11 @@ void loop()
   {
     delay(1000);
     Serial.println();
-
-    {
-      auto status = bms.GetGeneralStatus();
-      if (status.has_value())
-      {
-        // Serial.write("\r\nGeneralStatus:\r\n");
-        for (const auto board : status.value().data)
-        {
-          Serial.println(("LTCSumOfCell: " + std::to_string(static_cast<float>(board.SumOfCells)) + ",").c_str());
-          // Serial.println(("InternalDieTemp: " + std::to_string(static_cast<float>(board.InternalDieTemp)) + ",").c_str());
-          // Serial.println(("DigitalPower: " + std::to_string(static_cast<float>(board.Vdigital)) + ",").c_str());
-          // Serial.println(("AnalogPower: " + std::to_string(static_cast<float>(board.Vanalog)) + ",").c_str());
-        }
-      }
-    }
-    {
-      auto status = pm.GetBusVoltage();
-      if (status.has_value())
-      {
-        Serial.println(("ISLBUSVOLTAGE(V): " + std::to_string(status.value())).c_str());
-      }
-    }
     {
       auto status = pm.GetCurrent();
       if (status.has_value())
       {
         Serial.println(("ISLCURRENT(A): " + std::to_string(status.value())).c_str());
-      }
-    }
-    {
-      auto status = pm.GetShuntVoltage();
-      if (status.has_value())
-      {
-        Serial.println(("ISLSHUNTVOLTAGE:(mV) " + std::to_string(status.value())).c_str());
       }
     }
     {
