@@ -305,6 +305,7 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
     uint8_t current_cell{0}, current_ic{kDaisyChainLength - 1};
     uint8_t kDelta{0};
 
+
     switch (barancing_state) // それぞれ状態のkDeltaの設定
     {
     case OverAbsoleteLine:
@@ -359,6 +360,7 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
                 if (barancing_state == DisChargeState::Complete)
                 {
                     barancing_state = DisChargeState::OverAbsoleteLine; // 状態が完了状態ならkDeltaを絶対ラインまで引き下げる
+
                 }
             }
 
