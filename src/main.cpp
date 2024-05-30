@@ -55,116 +55,117 @@ void loop()
         }
       }
     }
+
+    // {
+    //   auto status = pm.GetBusVoltage();
+    //   if (status.has_value())
+    //   {
+    //     Serial.println(("ISLBUSVOLTAGE(V): " + std::to_string(status.value())).c_str());
+    //   }
+    // }
+    // {
+    //   auto status = pm.GetCurrent();
+    //   if (status.has_value())
+    //   {
+    //     Serial.println(("ISLCURRENT(A): " + std::to_string(status.value())).c_str());
+    //   }
+    // }
+    // {
+    //   auto status = pm.GetShuntVoltage();
+    //   if (status.has_value())
+    //   {
+    //     Serial.println(("ISLSHUNTVOLTAGE:(mV) " + std::to_string(status.value())).c_str());
+    //   }
+    // }
+    // {
+    //   auto status = pm.GetPower();
+    //   if (status.has_value())
+    //   {
+    //     Serial.println(("ISLPOWER(W): " + std::to_string(status.value())).c_str());
+    //   }
+    // }
+
+    Serial.println();
+    auto vol_status = bms.GetVoltageStatus();
+    auto temp_status = bms.GetTemperatureStatus();
+
+    if (vol_status.has_value() && temp_status.has_value())
     {
-      auto status = pm.GetBusVoltage();
-      if (status.has_value())
+      for (const auto &board : vol_status.value().vol)
       {
-        Serial.println(("ISLBUSVOLTAGE(V): " + std::to_string(status.value())).c_str());
+        for (const auto voltage : board)
+        {
+          Serial.write((std::to_string(static_cast<float>(voltage) / 10000) + ",").c_str());
+        }
+        Serial.println();
+      }
+      Serial.println();
+      Serial.write("\r\nCellVoltages:[V]\r\n");
+      Serial.write(("MAX: " + std::to_string(static_cast<float>(vol_status.value().max) / 10000) + "\r\n").c_str());
+      Serial.write(("MIN: " + std::to_string(static_cast<float>(vol_status.value().min) / 10000) + "\r\n").c_str());
+      Serial.write(("DIF: " + std::to_string(static_cast<float>(vol_status.value().max - vol_status.value().min) / 10000) + "\r\n").c_str());
+      Serial.write(("SUM: " + std::to_string(static_cast<float>(vol_status.value().sum) / 10000) + "\r\n").c_str());
+      Serial.println();
+      for (const auto &board : temp_status.value().temp)
+      {
+        for (const auto temp : board)
+        {
+          Serial.write((std::to_string(static_cast<float>(temp) / 1000) + ",").c_str());
+        }
+        Serial.println();
+      }
+      Serial.write("\r\nTemperatures:[deg]\r\n");
+      Serial.write(("MAX: " + std::to_string(static_cast<float>(temp_status.value().max) / 1000) + "\r\n").c_str());
+      Serial.write(("MIN: " + std::to_string(static_cast<float>(temp_status.value().min) / 1000) + "\r\n").c_str());
+      Serial.write("\r\n");
+      if (DISCHARGE)
+      {
+        discharge_cell(vol_status, temp_status);
+      }
+      else
+      {
+        delay(1000);
       }
     }
+
     {
-      auto status = pm.GetCurrent();
+      Serial.println();
+      delay(1000);
+      auto status = bms.GetGeneralStatus();
       if (status.has_value())
       {
-        Serial.println(("ISLCURRENT(A): " + std::to_string(status.value())).c_str());
+        Serial.write("\r\nGeneralStatus:\r\n");
+        for (const auto board : status.value().data)
+        {
+          Serial.write(("SumOfCell: " + std::to_string(static_cast<float>(board.SumOfCells)) + ",").c_str());
+          Serial.write(("InternalDieTemp: " + std::to_string(static_cast<float>(board.InternalDieTemp)) + ",").c_str());
+          Serial.write(("DigitalPower: " + std::to_string(static_cast<float>(board.Vdigital)) + ",").c_str());
+          Serial.write(("AnalogPower: " + std::to_string(static_cast<float>(board.Vanalog)) + ",").c_str());
+          Serial.println();
+        }
+
       }
     }
+
     {
-      auto status = pm.GetShuntVoltage();
+      Serial.println();
+      auto status = bms.GetTemperatureStatus();
       if (status.has_value())
       {
-        Serial.println(("ISLSHUNTVOLTAGE:(mV) " + std::to_string(status.value())).c_str());
+        for (const auto board : status.value().temp)
+        {
+          for (const auto temp : board)
+          {
+            Serial.write((std::to_string(static_cast<float>(temp) / 1000) + ",").c_str());
+          }
+          Serial.println();
+        }
+        Serial.write("\r\nTemperatures:[deg]\r\n");
+        Serial.write(("MAX: " + std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
+        Serial.write(("MIN: " + std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
+        Serial.write("\r\n");
       }
     }
-    {
-      auto status = pm.GetPower();
-      if (status.has_value())
-      {
-        Serial.println(("ISLPOWER(W): " + std::to_string(status.value())).c_str());
-      }
-    }
+    delay(1000);
   }
 }
-
-// Serial.println();
-// auto vol_status = bms.GetVoltageStatus();
-// auto temp_status = bms.GetTemperatureStatus();
-
-// if (vol_status.has_value() && temp_status.has_value())
-// {
-//   for (const auto &board : vol_status.value().vol)
-//   {
-//     for (const auto voltage : board)
-//     {
-//       Serial.write((std::to_string(static_cast<float>(voltage) / 10000) + ",").c_str());
-//     }
-//     Serial.println();
-//   }
-//   Serial.println();
-//   Serial.write("\r\nCellVoltages:[V]\r\n");
-//   Serial.write(("MAX: " + std::to_string(static_cast<float>(vol_status.value().max) / 10000) + "\r\n").c_str());
-//   Serial.write(("MIN: " + std::to_string(static_cast<float>(vol_status.value().min) / 10000) + "\r\n").c_str());
-//   Serial.write(("DIF: " + std::to_string(static_cast<float>(vol_status.value().max - vol_status.value().min) / 10000) + "\r\n").c_str());
-//   Serial.write(("SUM: " + std::to_string(static_cast<float>(vol_status.value().sum) / 10000) + "\r\n").c_str());
-//   Serial.println();
-//   for (const auto &board : temp_status.value().temp)
-//   {
-//     for (const auto temp : board)
-//     {
-//       Serial.write((std::to_string(static_cast<float>(temp) / 1000) + ",").c_str());
-//     }
-//     Serial.println();
-//   }
-//   Serial.write("\r\nTemperatures:[deg]\r\n");
-//   Serial.write(("MAX: " + std::to_string(static_cast<float>(temp_status.value().max) / 1000) + "\r\n").c_str());
-//   Serial.write(("MIN: " + std::to_string(static_cast<float>(temp_status.value().min) / 1000) + "\r\n").c_str());
-//   Serial.write("\r\n");
-//   if (DISCHARGE)
-//   {
-//     discharge_cell(vol_status, temp_status);
-//   }
-//   else
-//   {
-//     delay(1000);
-//   }
-// }
-
-// {
-//   Serial.println();
-//   delay(1000);
-//   auto status = bms.GetGeneralStatus();
-//   if (status.has_value())
-//   {
-//     Serial.write("\r\nGeneralStatus:\r\n");
-//     for (const auto board : status.value().data)
-//     {
-//       Serial.write(("SumOfCell: " + std::to_string(static_cast<float>(board.SumOfCells)) + ",").c_str());
-//       Serial.write(("InternalDieTemp: " + std::to_string(static_cast<float>(board.InternalDieTemp)) + ",").c_str());
-//       Serial.write(("DigitalPower: " + std::to_string(static_cast<float>(board.Vdigital)) + ",").c_str());
-//       Serial.write(("AnalogPower: " + std::to_string(static_cast<float>(board.Vanalog)) + ",").c_str());
-//       Serial.println();
-//     }
-
-//   }
-// }
-
-// {
-//   Serial.println();
-//   auto status = bms.GetTemperatureStatus();
-//   if (status.has_value())
-//   {
-//     for (const auto board : status.value().temp)
-//     {
-//       for (const auto temp : board)
-//       {
-//         Serial.write((std::to_string(static_cast<float>(temp) / 1000) + ",").c_str());
-//       }
-//       Serial.println();
-//     }
-//     Serial.write("\r\nTemperatures:[deg]\r\n");
-//     Serial.write(("MAX: " + std::to_string(static_cast<float>(status.value().max) / 1000) + "\r\n").c_str());
-//     Serial.write(("MIN: " + std::to_string(static_cast<float>(status.value().min) / 1000) + "\r\n").c_str());
-//     Serial.write("\r\n");
-//   }
-// }
-// delay(1000);
