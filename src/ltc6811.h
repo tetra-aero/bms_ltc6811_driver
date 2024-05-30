@@ -241,7 +241,8 @@ public:
 private:
     SPIClass &hspi;
 
-    DischargeMode discharge_mode{GTMinPlusDelta};
+    //DischargeMode discharge_mode{GTMinPlusDelta};
+    DischargeMode discharge_mode{GTMeanPlusDelta};
 
     LTC6811RegisterGroup<uint8_t> slave_cfg_tx{LTC6811Command{0x00, 0x01, 0x3D, 0x6E}};
     LTC6811RegisterGroup<uint8_t> slave_cfg_rx{LTC6811Command{0x00, 0x02, 0x2B, 0x0A}};
