@@ -73,18 +73,18 @@ struct BatteryState
 
     bool read()
     {
-        if(!begin_)
+        if (!begin_)
             return false;
 
         File fp = SPIFFS.open(path.c_str(), "r");
 
-        if(!fp)
+        if (!fp)
             return false;
 
         soc = fp.readStringUntil('\n').toFloat();
         soh = fp.readStringUntil('\n').toFloat();
         fp.close();
-        
+
         return true;
     }
 
@@ -121,11 +121,14 @@ public:
     {
         bool write_strorage = false;
         float data = estimate_soc(current);
-        if(std::abs(state_.soc - data) > 1)  write_strorage = true;
+        if (std::abs(state_.soc - data) > 1)
+            write_strorage = true;
         state_.soc = data;
         data = estimate_soh();
-        if(std::abs(state_.soh - data) > 1)  write_strorage = true;
-        if(write_strorage)  state_.write();
+        if (std::abs(state_.soh - data) > 1)
+            write_strorage = true;
+        if (write_strorage)
+            state_.write();
     }
 
     float GetSoc()
