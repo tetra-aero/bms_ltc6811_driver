@@ -414,6 +414,8 @@ void LTC6811::BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, c
     case GTMeanPlusDelta:
         size_t average_voltage{voltage_status.sum / (12 * kDaisyChainLength)};
 
+        Serial.println(("Mean[V]: " + std::to_string((static_cast<float>(average_voltage) / 10000))).c_str());
+
         for (auto &cfg_register : slave_cfg_tx.register_group)
         {
             DCCx = 0;
