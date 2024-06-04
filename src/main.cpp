@@ -26,7 +26,8 @@ void setup()
   SPI.begin();
   SPI.beginTransaction(mySPISettings);
   Wire.begin();
-  Serial.begin(9600);
+  //Serial.begin(9600);
+  Serial.begin(115200);
   delay(20);
   pm.begin();
   pinMode(SS, OUTPUT);
