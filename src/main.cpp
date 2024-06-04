@@ -15,7 +15,8 @@ void discharge_cell(std::optional<LTC6811VoltageStatus> &vol_status, std::option
     return;
 
   bms.BuildDischargeConfig(vol_status.value(), temp_status.value());
-  delay(1000);
+  //delay(1000);
+  delay(100);
   bms.ClearDischargeConfig();
   delay(100); // <------電圧が回復するまで待ちたい
 }
@@ -63,6 +64,7 @@ void loop()
       }
     }
     {
+<<<<<<< Updated upstream
       auto status = pm.GetCurrent();
       if (status.has_value())
       {
@@ -82,6 +84,10 @@ void loop()
       {
         Serial.println(("ISLPOWER(W): " + std::to_string(status.value())).c_str());
       }
+=======
+      //delay(1000);
+      delay(100);
+>>>>>>> Stashed changes
     }
   }
 }
