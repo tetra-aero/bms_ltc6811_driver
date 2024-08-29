@@ -82,7 +82,7 @@ struct LTC6811GeneralStatus
         float Vdigital;
         float Vanalog;
     };
-    std::array<Data,kDaisyChainLength> data;
+    std::array<Data, kDaisyChainLength> data;
 };
 
 struct LTC6811PWMRegisterStatus
@@ -173,7 +173,8 @@ public:
         Ratio_16_16,
     };
 
-    enum DisChargeState : uint8_t {
+    enum DisChargeState : uint8_t
+    {
         OverAbsoleteLine,
         Complete,
     };
@@ -220,7 +221,7 @@ public:
 
     [[nodiscard]] std::optional<LTC6811TempStatus> GetTemperatureStatus(void);
 
-    void BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status,  const LTC6811TempStatus &temp_status);
+    void BuildDischargeConfig(const LTC6811VoltageStatus &voltage_status, const LTC6811TempStatus &temp_status);
 
     void SetPwmDuty(uint8_t ratio);
 
@@ -253,7 +254,7 @@ private:
         LTC6811Command{0, 12, 239, 204}, LTC6811Command{0, 14, 114, 154}};
     std::array<LTC6811RegisterGroup<uint16_t>, 2> status_registers{
         LTC6811Command{0x00, 0x10, 0xED, 0x72}, LTC6811Command{0x00, 0x12, 0x70, 0x24}};
-    
+
     uint32_t barancing_state = {OverAbsoleteLine};
 
     /* Write Register Function. Return 0 if success, 1 if failure. */
