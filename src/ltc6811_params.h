@@ -29,10 +29,10 @@ namespace ltc6811::data
     {
         struct Data
         {
-            float SumOfCells;
-            float InternalDieTemp;
-            float Vdigital;
-            float Vanalog;
+            float sumOfCells;
+            float internalDieTemp;
+            float vdigital;
+            float vanalog;
         };
         std::array<Data, CHANE_LENGTH> data;
     };
@@ -40,40 +40,6 @@ namespace ltc6811::data
     {
         std::array<std::array<uint8_t, CELL_NUM_PER_IC>, CHANE_LENGTH> pwm;
     };
-};
-
-namespace ltc6811::registers
-{
-    using ADDRESS = std::array<uint8_t, 2>;
-    constexpr ADDRESS WRITE_CONFIG_A = {0x00, 0x01};
-    constexpr ADDRESS READ_CONFIG_A = {0x00, 0x02};
-    constexpr ADDRESS WRITE_PWM = {0x00, 0x20};
-    constexpr ADDRESS READ_PWM = {0x00, 0x22};
-    constexpr ADDRESS READ_CELL_A = {0x00, 0x04};
-    constexpr ADDRESS READ_CELL_B = {0x00, 0x06};
-    constexpr ADDRESS READ_CELL_C = {0x00, 0x08};
-    constexpr ADDRESS READ_CELL_D = {0x00, 0x0A};
-    constexpr ADDRESS READ_TEMP_A = {0x00, 0x0C};
-    constexpr ADDRESS READ_TEMP_B = {0x00, 0x0E};
-    constexpr ADDRESS READ_STATUS_A = {0x00, 0x10};
-    constexpr ADDRESS READ_STATUS_B = {0x00, 0x12};
-
-    struct Request
-    {
-        std::array<uint8_t, 4> data;
-        Request(std::array<uint8_t, 4> &&arr) : data(std::move(arr))
-        {
-        }
-    };
-    struct Response8
-    {
-        std::array<uint8_t, CHANE_LENGTH> data;
-    };
-    struct Response16
-    {
-        std::array<uint16_t, CHANE_LENGTH> data;
-    };
-
 };
 
 namespace ltc6811::utils
@@ -96,22 +62,8 @@ namespace ltc6811::utils
         0x0af8, 0xcf61, 0xc453, 0x01ca, 0xd237, 0x17ae, 0x1c9c, 0xd905, 0xfeff, 0x3b66, 0x3054, 0xf5cd, 0x2630, 0xe3a9, 0xe89b, 0x2d02,
         0xa76f, 0x62f6, 0x69c4, 0xac5d, 0x7fa0, 0xba39, 0xb10b, 0x7492, 0x5368, 0x96f1, 0x9dc3, 0x585a, 0x8ba7, 0x4e3e, 0x450c, 0x8095};
 
-    constexpr uint16_t CRC(const std::array<uint8_t, 6> &arr, size_t size)
-    {
-        uint16_t res = 0x10;
-        uint16_t idx = 0x00;
-        const uint8_t *data = arr.data();
-
-        for (size_t i = 0; i < size; ++i)
-        {
-            idx = (res >> 7 ^ data[i]) & 0xFF;
-            res = res << 8 ^ lookup[idx];
-        }
-        res = res << 1;
-        return res;
-    }
-
-    constexpr uint16_t CRC(const std::array<uint16_t, 3> &arr, size_t size)
+    template <class C, size_t S>
+    constexpr uint16_t CRC(const std::array<C, S> &arr, size_t size)
     {
         uint16_t res = 0x10;
         uint16_t idx = 0x00;
@@ -125,4 +77,126 @@ namespace ltc6811::utils
         res = res << 1;
         return res;
     }
+
+    void wakeup_port(SPIClass &spi, uint8_t gpio)
+    {
+        for (size_t i = 0; i < CHANE_LENGTH; ++i)
+        {
+            digitalWrite(gpio, LOW);
+            spi.transfer(0xFF);
+            digitalWrite(gpio, HIGH);
+        }
+    }
+
+    void wakeup(SPIClass &spi, uint8_t gpio)
+    {
+        for (size_t i = 0; i < CHANE_LENGTH; ++i)
+        {
+            digitalWrite(gpio, LOW);
+            delayMicroseconds(WAKEUP_DELAY);
+            digitalWrite(gpio, HIGH);
+            delayMicroseconds(10);
+        }
+    }
+
+};
+
+namespace ltc6811::registers
+{
+    using COMMAND = std::array<uint8_t, 2>;
+    using COMMANDCRC = std::array<uint8_t, 4>;
+    template <class C>
+    using RESPONSE = std::array<C, 6 / sizeof(C)>;
+    constexpr COMMAND WRITE_CONFIG_A = {0x00, 0x01};
+    constexpr COMMAND READ_CONFIG_A = {0x00, 0x02};
+    constexpr COMMAND WRITE_PWM = {0x00, 0x20};
+    constexpr COMMAND READ_PWM = {0x00, 0x22};
+    constexpr COMMAND READ_CELL_A = {0x00, 0x04};
+    constexpr COMMAND READ_CELL_B = {0x00, 0x06};
+    constexpr COMMAND READ_CELL_C = {0x00, 0x08};
+    constexpr COMMAND READ_CELL_D = {0x00, 0x0A};
+    constexpr COMMAND READ_TEMP_A = {0x00, 0x0C};
+    constexpr COMMAND READ_TEMP_B = {0x00, 0x0E};
+    constexpr COMMAND READ_STATUS_A = {0x00, 0x10};
+    constexpr COMMAND READ_STATUS_B = {0x00, 0x12};
+
+    constexpr COMMANDCRC create_command_crc(COMMAND command)
+    {
+        return {command[0], command[1], static_cast<uint8_t>(utils::CRC(command, 2) >> 8), static_cast<uint8_t>(utils::CRC(command, 2))};
+    }
+
+    template <class C>
+    struct Response
+    {
+        std::array<C, (REGISTER_BYTES - sizeof(uint16_t)) / sizeof(C)> data;
+        uint16_t CRC;
+    };
+
+    template <class C>
+    struct Responses
+    {
+        std::array<Response<C>, CHANE_LENGTH> data;
+    };
+
+    template <class C>
+    struct ReadRequest
+    {
+        COMMANDCRC cmd;
+        Responses<C> res;
+        constexpr ReadRequest(COMMANDCRC &&arr) : cmd(std::move(arr))
+        {
+        }
+        std::optional<Responses<C> &> request(SPIClass &spi, uint8_t gpio)
+        {
+            uint8_t *buffer = reinterpret_cast<uint8_t *>(res.data.begin());
+            utils::wakeup_port(spi, gpio);
+            digitalWrite(gpio, LOW);
+            spi.writeBytes(cmd.data(), cmd.size());
+            for (size_t i = 0; i < CHANE_LENGTH * REGISTER_BYTES; i++)
+            {
+                buffer[i] = spi.transfer(0xFF);
+            }
+            digitalWrite(gpio, HIGH);
+            for (auto &r : res.data)
+            {
+                if (r.CRC != PEC15Calc(r.data))
+                {
+                    return std::nullopt;
+                }
+            }
+            return res;
+        }
+    };
+
+    template <class C>
+    struct WriteRequest
+    {
+        COMMANDCRC cmd;
+
+        constexpr WriteRequest(COMMANDCRC &&arr) : cmd(std::move(arr))
+        {
+        }
+
+        std::optional<bool> request(SPIClass &spi, uint8_t gpio)
+        {
+            utils::wakeup_port(spi, gpio);
+            digitalWrite(gpio, LOW);
+            spi.writeBytes(cmd.data(), cmd.size());
+            digitalWrite(gpio, HIGH);
+            return false;
+        }
+    };
+
+    WriteRequest<uint8_t> req_write_config_a(create_command_crc(WRITE_CONFIG_A));
+    ReadRequest<uint8_t> req_read_config_a(create_command_crc(READ_CONFIG_A));
+    WriteRequest<uint8_t> req_write_pwm(create_command_crc(WRITE_PWM));
+    ReadRequest<uint8_t> req_read_pwm(create_command_crc(READ_PWM));
+    ReadRequest<uint16_t> req_read_cell_a(create_command_crc(READ_CELL_A));
+    ReadRequest<uint16_t> req_read_cell_b(create_command_crc(READ_CELL_B));
+    ReadRequest<uint16_t> req_read_cell_c(create_command_crc(READ_CELL_C));
+    ReadRequest<uint16_t> req_read_cell_d(create_command_crc(READ_CELL_D));
+    ReadRequest<uint16_t> req_read_temp_a(create_command_crc(READ_TEMP_A));
+    ReadRequest<uint16_t> req_read_temp_b(create_command_crc(READ_TEMP_B));
+    ReadRequest<uint16_t> req_read_status_a(create_command_crc(READ_STATUS_A));
+    ReadRequest<uint16_t> req_read_status_b(create_command_crc(READ_STATUS_B));
 };
