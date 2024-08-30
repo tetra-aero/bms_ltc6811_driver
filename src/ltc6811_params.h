@@ -25,16 +25,31 @@ namespace ltc6811::data
         std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
         std::pair<ic_id, cell_id> max_id{0xFF, 0xFF};
     };
+    struct Status
+    {
+        struct Data
+        {
+            float SumOfCells;
+            float InternalDieTemp;
+            float Vdigital;
+            float Vanalog;
+        };
+        std::array<Data, CHANE_LENGTH> data;
+    };
+    struct Pwm
+    {
+        std::array<std::array<uint8_t, CELL_NUM_PER_IC>, CHANE_LENGTH> pwm;
+    };
 };
 
-namespace ltc6811::params
+namespace ltc6811::registers
 {
 
 };
 
 namespace ltc6811::utils
 {
-    constexpr std::array<uint16_t, 256> table{
+    constexpr std::array<uint16_t, 256> lookup{
         0x0000, 0xc599, 0xceab, 0x0b32, 0xd8cf, 0x1d56, 0x1664, 0xd3fd, 0xf407, 0x319e, 0x3aac, 0xff35, 0x2cc8, 0xe951, 0xe263, 0x27fa,
         0xad97, 0x680e, 0x633c, 0xa6a5, 0x7558, 0xb0c1, 0xbbf3, 0x7e6a, 0x5990, 0x9c09, 0x973b, 0x52a2, 0x815f, 0x44c6, 0x4ff4, 0x8a6d,
         0x5b2e, 0x9eb7, 0x9585, 0x501c, 0x83e1, 0x4678, 0x4d4a, 0x88d3, 0xaf29, 0x6ab0, 0x6182, 0xa41b, 0x77e6, 0xb27f, 0xb94d, 0x7cd4,
@@ -61,7 +76,7 @@ namespace ltc6811::utils
         for (size_t i = 0; i < size; ++i)
         {
             idx = (res >> 7 ^ data[i]) & 0xFF;
-            res = res << 8 ^ table[idx];
+            res = res << 8 ^ lookup[idx];
         }
         res = res << 1;
         return res;
@@ -76,7 +91,7 @@ namespace ltc6811::utils
         for (size_t i = 0; i < size; ++i)
         {
             idx = (res >> 7 ^ data[i]) & 0xFF;
-            res = res << 8 ^ table[idx];
+            res = res << 8 ^ lookup[idx];
         }
         res = res << 1;
         return res;
