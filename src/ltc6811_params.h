@@ -44,6 +44,35 @@ namespace ltc6811::data
 
 namespace ltc6811::registers
 {
+    using ADDRESS = std::array<uint8_t, 2>;
+    constexpr ADDRESS WRITE_CONFIG_A = {0x00, 0x01};
+    constexpr ADDRESS READ_CONFIG_A = {0x00, 0x02};
+    constexpr ADDRESS WRITE_PWM = {0x00, 0x20};
+    constexpr ADDRESS READ_PWM = {0x00, 0x22};
+    constexpr ADDRESS READ_CELL_A = {0x00, 0x04};
+    constexpr ADDRESS READ_CELL_B = {0x00, 0x06};
+    constexpr ADDRESS READ_CELL_C = {0x00, 0x08};
+    constexpr ADDRESS READ_CELL_D = {0x00, 0x0A};
+    constexpr ADDRESS READ_TEMP_A = {0x00, 0x0C};
+    constexpr ADDRESS READ_TEMP_B = {0x00, 0x0E};
+    constexpr ADDRESS READ_STATUS_A = {0x00, 0x10};
+    constexpr ADDRESS READ_STATUS_B = {0x00, 0x12};
+
+    struct Request
+    {
+        std::array<uint8_t, 4> data;
+        Request(std::array<uint8_t, 4> &&arr) : data(std::move(arr))
+        {
+        }
+    };
+    struct Response8
+    {
+        std::array<uint8_t, CHANE_LENGTH> data;
+    };
+    struct Response16
+    {
+        std::array<uint16_t, CHANE_LENGTH> data;
+    };
 
 };
 
