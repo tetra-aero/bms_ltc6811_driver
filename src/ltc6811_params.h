@@ -16,7 +16,7 @@ namespace ltc6811::data
         std::pair<uint16_t, uint16_t> vol_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
         std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
         std::pair<ic_id, cell_id> max_id{0xFF, 0xFF};
-    };
+    } cell_data;
     struct Temperature
     {
         board::TEMP_DATA temp;
@@ -26,7 +26,7 @@ namespace ltc6811::data
         std::pair<uint16_t, uint16_t> temp_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
         std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
         std::pair<ic_id, cell_id> max_id{0xFF, 0xFF};
-    };
+    } temp_data;
     struct Status
     {
         struct Data
@@ -37,11 +37,11 @@ namespace ltc6811::data
             float vanalog;
         };
         std::array<Data, board::CHANE_LENGTH> data;
-    };
+    } status;
     struct Pwm
     {
         std::array<std::array<uint8_t, board::CELL_NUM_PER_IC>, board::CHANE_LENGTH> pwm;
-    };
+    } pwm;
 };
 
 namespace ltc6811::utils
@@ -130,14 +130,14 @@ namespace ltc6811::registers
     template <class C>
     struct Response
     {
-        std::array<C, (REGISTER_BYTES - sizeof(uint16_t)) / sizeof(C)> data;
+        std::array<C, (board::REGISTER_BYTES - sizeof(uint16_t)) / sizeof(C)> data;
         uint16_t CRC;
     };
 
     template <class C>
     struct Responses
     {
-        std::array<Response<C>, CHANE_LENGTH> data;
+        std::array<Response<C>, board::CHANE_LENGTH> data;
     };
 
     template <class C>
@@ -154,7 +154,7 @@ namespace ltc6811::registers
             utils::wakeup_port(spi, gpio);
             digitalWrite(gpio, LOW);
             spi.writeBytes(cmd.data(), cmd.size());
-            for (size_t i = 0; i < CHANE_LENGTH * REGISTER_BYTES; i++)
+            for (size_t i = 0; i < board::CHANE_LENGTH * board::REGISTER_BYTES; i++)
             {
                 buffer[i] = spi.transfer(0xFF);
             }
