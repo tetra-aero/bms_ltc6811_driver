@@ -12,15 +12,17 @@ namespace ltc6811::data
     struct CellVoltage
     {
         uint32_t sum{0};
-        CELL_DATA vol;
+        board::CELL_DATA vol;
         std::pair<uint16_t, uint16_t> vol_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
         std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
         std::pair<ic_id, cell_id> max_id{0xFF, 0xFF};
     };
     struct Temperature
     {
-        TEMP_DATA temp;
-        std::array<int32_t, CHANE_LENGTH> vref2;
+        board::TEMP_DATA temp;
+        uint16_t battery_average;
+        uint16_t pcb_average;
+        std::array<int32_t, board::CHANE_LENGTH> vref2;
         std::pair<uint16_t, uint16_t> temp_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
         std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
         std::pair<ic_id, cell_id> max_id{0xFF, 0xFF};
@@ -34,11 +36,11 @@ namespace ltc6811::data
             float vdigital;
             float vanalog;
         };
-        std::array<Data, CHANE_LENGTH> data;
+        std::array<Data, board::CHANE_LENGTH> data;
     };
     struct Pwm
     {
-        std::array<std::array<uint8_t, CELL_NUM_PER_IC>, CHANE_LENGTH> pwm;
+        std::array<std::array<uint8_t, board::CELL_NUM_PER_IC>, board::CHANE_LENGTH> pwm;
     };
 };
 
@@ -80,7 +82,7 @@ namespace ltc6811::utils
 
     void wakeup_port(SPIClass &spi, uint8_t gpio)
     {
-        for (size_t i = 0; i < CHANE_LENGTH; ++i)
+        for (size_t i = 0; i < board::CHANE_LENGTH; ++i)
         {
             digitalWrite(gpio, LOW);
             spi.transfer(0xFF);
@@ -90,10 +92,10 @@ namespace ltc6811::utils
 
     void wakeup(SPIClass &spi, uint8_t gpio)
     {
-        for (size_t i = 0; i < CHANE_LENGTH; ++i)
+        for (size_t i = 0; i < board::CHANE_LENGTH; ++i)
         {
             digitalWrite(gpio, LOW);
-            delayMicroseconds(WAKEUP_DELAY);
+            delayMicroseconds(board::WAKEUP_DELAY);
             digitalWrite(gpio, HIGH);
             delayMicroseconds(10);
         }
@@ -160,9 +162,7 @@ namespace ltc6811::registers
             for (auto &r : res.data)
             {
                 if (r.CRC != PEC15Calc(r.data))
-                {
                     return std::nullopt;
-                }
             }
             return res;
         }

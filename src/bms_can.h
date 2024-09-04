@@ -1,58 +1,65 @@
+#pragma once
+
 #include <map>
 #include <array>
 #include <variant>
 #include <optional>
 #include <CAN.h>
 #include "constant.h"
+#include "ltc6811_params.h"
 
-class BMSMessage
+namespace can
 {
-    static constexpr uint32_t CAN_REQUEST_VOLTAGE = 0x4600;
-    static constexpr uint32_t CAN_REQUEST_CELLVOLTAGE = 0x4700;
-    static constexpr uint32_t CAN_REQUEST_CELLBALANCE = 0x4800;
-    static constexpr uint32_t CAN_REQUEST_TEMPERATURE = 0x4900;
-    std::map<uint32_t, std::variant<CELL_DATA &, TEMP_DATA &, VOL_DATA &>> data;
-
-public:
-    BMSMessage(CELL_DATA &cell, TEMP_DATA &temp, VOL_DATA &vol)
+    namespace protocol
     {
-        data[CAN_REQUEST_VOLTAGE] = vol;
-        data[CAN_REQUEST_TEMPERATURE] = temp;
-        data[CAN_REQUEST_CELLVOLTAGE] = cell;
-        data[CAN_REQUEST_CELLBALANCE] = cell;
-    }
-    std::optional<std::variant<CELL_DATA &, TEMP_DATA &, VOL_DATA &>> get_data(uint32_t id)
-    {
-        auto it = data.find(id);
-        if (it == data.end())
+        enum class CAN_PACKET_ID : uint32_t
         {
-            return std::nullopt;
+            CAN_PACKET_BMS_STATUS_MAIN_IV = 30,
+            CAN_PACKET_BMS_STATUS_CELLVOLTAGE,
+            CAN_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL,
+            CAN_PACKET_BMS_STATUS_TEMPERATURES,
+            CAN_PACKET_BMS_STATUS_AUX_IV_SAFETY_WATCHDOG,
+            CAN_PACKET_BMS_KEEP_ALIVE_SAFETY,
+        };
+
+        constexpr uint32_t create_packet_id(CAN_PACKET_ID packet_id, uint32_t board_id)
+        {
+            uint32_t id = (static_cast<uint32_t>(packet_id) << 8) | board_id;
+            return id;
         }
-        return it->second;
-    }
-};
+    };
 
-class CANDriver
-{
-    BMSMessage message_;
-    CANDriver(BMSMessage &&message) : message_(message)
+    namespace driver
     {
-    }
+        template <class C, size_t S>
+        void transmit(uint32_t packet_id, std::array<C, S> &data)
+        {
+            const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.data());
+            const size = sizeof(data) > 8 ? 8 : sizeof(data);
+            CAN.beginExtendedPacket(packet_id);
+            for (size_t i{}; i < size; i++)
+                CAN.write(buffer[i]);
+            CAN.endPacket();
+        }
 
-    bool setup(int bitrate)
-    {
-        return CAN.begin(bitrate);
-    }
+        bool setup()
+        {
+            return CAN.begin(board::CAN_BITRATE);
+        }
 
-    void update()
-    {
-        int packetSize = CAN.parsePacket();
+        bool report(uint32_t voltage, uint32_t current, ltc6811::data::CellVoltage &cell_data, ltc6811::data::Temperature &temp_data)
+        {
+            std::array<uint32_t, 2> data = {voltage, current};
+            transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_MAIN_IV, board::CAN_ID), data);
+            std::array<uint32_t, 2> data = {cell_data.vol_range.first, cell_data.vol_range.second};
+            transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE, board::CAN_ID), data);
+            std::array<uint16_t, 4> data = {
+                temp_data.battery_average,
+                temp_data.temp_range.first,
+                temp_data.pcb_average,
+                temp_data.temp_range.second};
+            transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
+        }
+    };
 
-        if (packetSize == 0)
-            return;
-
-        auto data = message_.get_data(CAN.packetId());
-        if (!data.has_value())
-            return;
-    }
 };
