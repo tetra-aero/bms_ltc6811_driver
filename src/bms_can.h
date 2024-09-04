@@ -53,11 +53,14 @@ namespace can
             transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_MAIN_IV, board::CAN_ID), data);
             std::array<uint32_t, 2> data = {cell_data.vol_range.first, cell_data.vol_range.second};
             transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE, board::CAN_ID), data);
-            std::array<uint16_t, 4> data = {
-                temp_data.battery_average,
-                temp_data.temp_range.first,
-                temp_data.pcb_average,
-                temp_data.temp_range.second};
+            std::array<uint8_t, 8> data = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000100};
+            transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL, board::CAN_ID), data);
+            std::array<uint16_t, 4>
+                data = {
+                    temp_data.battery_average,
+                    temp_data.temp_range.first,
+                    temp_data.pcb_average,
+                    temp_data.temp_range.second};
             transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
         }
     };
