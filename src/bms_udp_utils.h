@@ -8,28 +8,21 @@ namespace udp
 {
     namespace protocol
     {
-        namespace UDP_PACKET_ID
+
+        enum class UDP_PACKET_ID : uint32_t
         {
-            static constexpr uint8_t ID_LENGTH = 4;
-            static constexpr const char *UDP_PACKET_BMS_BOARD_ID = "BBID";
-            static constexpr const char *UDP_PACKET_BMS_STATUS_MAIN_IV = "STAT";
-            static constexpr const char *UDP_PACKET_BMS_STATUS_CELLVOLTAGE = "CELL";
-            static constexpr const char *UDP_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL = "CONF";
-            static constexpr const char *UDP_PACKET_BMS_STATUS_TEMPERATURES = "TEMP";
-            static constexpr const char *UDP_PACKET_BMS_STATUS_AUX_IV_SAFETY_WATCHDOG = "AUXW";
-            static constexpr const char *UDP_PACKET_BMS_KEEP_ALIVE_SAFETY = "ALIV";
+            UDP_PACKET_BMS_STATUS_MAIN_IV = 30,
+            UDP_PACKET_BMS_STATUS_CELLVOLTAGE,
+            UDP_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL,
+            UDP_PACKET_BMS_STATUS_TEMPERATURES,
+            UDP_PACKET_BMS_STATUS_AUX_IV_SAFETY_WATCHDOG,
+            UDP_PACKET_BMS_KEEP_ALIVE_SAFETY,
         };
 
-        template <typename T, size_t S>
-        std::array<uint8_t, S * sizeof(T) + sizeof(UDP_PACKET_ID::ID_LENGTH) * 2 + UDP_PACKET_ID::ID_LENGTH * 2> create_packet(const char *packet_id, uint8_t board_id, std::array<T, S> &data)
+        constexpr uint32_t create_packet_id(UDP_PACKET_ID packet_id, uint32_t board_id)
         {
-            std::array<uint8_t, S * sizeof(T) + sizeof(UDP_PACKET_ID::ID_LENGTH) * 2 + UDP_PACKET_ID::ID_LENGTH * 2> packet = {};
-            std::memcpy(packet.data(), packet_id, UDP_PACKET_ID::ID_LENGTH);
-            packet[UDP_PACKET_ID::ID_LENGTH] = static_cast<uint8_t>(sizeof(board_id) + sizeof(data) + 2);
-            std::memcpy(packet.data() + UDP_PACKET_ID::ID_LENGTH + sizeof(UDP_PACKET_ID::ID_LENGTH), board_id, UDP_PACKET_ID::ID_LENGTH);
-            packet[UDP_PACKET_ID::ID_LENGTH * 2 + sizeof(UDP_PACKET_ID::ID_LENGTH)] = static_cast<uint8_t>(sizeof(board_id));
-            std::memcpy(packet.data() + UDP_PACKET_ID::ID_LENGTH + sizeof(UDP_PACKET_ID::ID_LENGTH), data.data(), sizeof(data));
-            return packet;
+            uint32_t id = (static_cast<uint32_t>(packet_id) << 8) | board_id;
+            return id;
         }
 
     };
@@ -38,10 +31,12 @@ namespace udp
     {
         AsyncUDP UDP;
 
-        template <size_t S>
-        void transmit(std::array<uint8_t, S> &data)
+        template <typename T, size_t S>
+        void transmit(uint32_t packet_id, std::array<T, S> &data)
         {
-            UDP.writeTo(data.data(), IPAdress(board::HOST_IP_ADDRESS.data()), 12351);
+            const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.data());
+            const size_t size = sizeof(data) > 8 ? 8 : sizeof(data);
+            UDP.writeTo(buffer, IPAdress(board::HOST_IP_ADDRESS.data()), 12351);
         }
 
         void setup()
@@ -54,15 +49,15 @@ namespace udp
         {
             {
                 std::array<uint32_t, 2> data = {voltage, current};
-                transmit(protocol::create_packet(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_MAIN_IV, board::CAN_ID, data));
+                transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_MAIN_IV, board::CAN_ID), data);
             }
             {
                 std::array<uint32_t, 2> data = {cell_data.vol_range.first, cell_data.vol_range.second};
-                transmit(protocol::create_packet(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE, board::CAN_ID, data));
+                transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE, board::CAN_ID), data);
             }
             {
                 std::array<uint8_t, 8> data = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000100};
-                transmit(protocol::create_packet(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL, board::CAN_ID, data));
+                transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL, board::CAN_ID), data);
             }
             {
                 std::array<uint16_t, 4>
@@ -71,7 +66,7 @@ namespace udp
                         temp_data.temp_range.first,
                         temp_data.pcb_average,
                         temp_data.temp_range.second};
-                transmit(protocol::create_packet(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID, data));
+                transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
             }
             return true;
         }
