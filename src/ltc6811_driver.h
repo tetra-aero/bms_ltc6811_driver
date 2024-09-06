@@ -96,6 +96,27 @@ namespace ltc6811
             std::array<std::array<bool, board::CELL_NUM_PER_IC>, board::CHANE_LENGTH> data;
         } config;
 
+        void dbg()
+        {
+            Serial.println(("# ltc6811: Temp: Min : " + std::to_string(temp_data.temp_range.first)).c_str());
+            Serial.println(("# ltc6811: Temp: Max : " + std::to_string(temp_data.temp_range.second)).c_str());
+            Serial.println(("# ltc6811: Temp: pcbAverage : " + std::to_string(temp_data.pcb_average)).c_str());
+            Serial.println(("# ltc6811: Temp: battAverage : " + std::to_string(temp_data.battery_average)).c_str());
+            Serial.println(("# ltc6811: Vol: Min : " + std::to_string(cell_data.vol_range.first)).c_str());
+            Serial.println(("# ltc6811: Vol: Max : " + std::to_string(cell_data.vol_range.second)).c_str());
+            Serial.println(("# ltc6811: Vol: Ave : " + std::to_string(cell_data.average)).c_str());
+            Serial.println(("# ltc6811: Vol: Sum : " + std::to_string(cell_data.average)).c_str());
+            for (size_t j = 0; j < board::CHANE_LENGTH; j++)
+            {
+                Serial.print(("# ltc6811: Vol: Dcc : IC" + std::to_string(j) + " Cell :").c_str());
+                for (size_t i = 0; i < board::CELL_NUM_PER_IC; i++)
+                {
+                    Serial.print((std::to_string(i) + std::to_string(config.data[j][i]) + " ").c_str());
+                }
+                Serial.println();
+            }
+        }
+
     };
 
     namespace utils

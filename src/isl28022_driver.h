@@ -218,7 +218,15 @@ namespace isl28022
         float current;
         float power;
         float bus_voltage;
-        float shut_voltage;
+        float shunt_voltage;
+
+        void dbg()
+        {
+            Serial.println(("# isl28022: Current: " + std::to_string(current)).c_str());
+            Serial.println(("# isl28022: Power: " + std::to_string(power)).c_str());
+            Serial.println(("# isl28022: BusVoltage: " + std::to_string(bus_voltage)).c_str());
+            Serial.println(("# isl28022: ShuntVoltage: " + std::to_string(shunt_voltage)).c_str());
+        }
     };
 
     namespace driver
@@ -249,7 +257,7 @@ namespace isl28022
                 auto res = pm.get_shunt_voltage();
                 if (res.has_value())
                 {
-                    data::shut_voltage = res.value();
+                    data::shunt_voltage = res.value();
                 }
             }
             {
