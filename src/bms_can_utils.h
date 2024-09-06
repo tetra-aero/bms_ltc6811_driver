@@ -27,8 +27,8 @@ namespace can
 
     namespace driver
     {
-        template <class C, size_t S>
-        void transmit(uint32_t packet_id, std::array<C, S> &data)
+        template <typename T, size_t S>
+        void transmit(uint32_t packet_id, std::array<T, S> &data)
         {
             const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.data());
             const size_t size = sizeof(data) > 8 ? 8 : sizeof(data);

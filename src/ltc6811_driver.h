@@ -419,6 +419,7 @@ namespace ltc6811
                 data::ic_id ic{board::CHANE_LENGTH - 1};
                 for (auto &message : messages.data)
                 {
+                    message.data[0] = 0xFC;
                     message.data[4] = create_bitmask(dcc.data[ic], 0, 7);
                     message.data[5] = create_bitmask(dcc.data[ic], 8, 11);
                     message.CRC = utils::CRC(message.data);
@@ -439,7 +440,7 @@ namespace ltc6811
                 uint8_t *buffer = reinterpret_cast<uint8_t *>(res.data.begin());
                 utils::wakeup_port(spi, gpio);
                 digitalWrite(gpio, LOW);
-                spi.writeBytes(cmd.data(), cmd.size());
+                spi.writeBytes(cmd.data(), sizeof(cmd));
                 for (size_t i = 0; i < board::CHANE_LENGTH * board::REGISTER_BYTES; i++)
                 {
                     buffer[i] = spi.transfer(0xFF);
@@ -469,7 +470,7 @@ namespace ltc6811
             {
                 utils::wakeup_port(spi, gpio);
                 digitalWrite(gpio, LOW);
-                spi.writeBytes(cmd.data(), cmd.size());
+                spi.writeBytes(cmd.data(), sizeof(cmd));
                 digitalWrite(gpio, HIGH);
                 return true;
             }
@@ -495,7 +496,7 @@ namespace ltc6811
                 utils::wakeup_port(spi, gpio);
                 digitalWrite(gpio, LOW);
                 delayMicroseconds(500);
-                spi.writeBytes(cmd.data(), cmd.size());
+                spi.writeBytes(cmd.data(), sizeof(cmd));
                 delayMicroseconds(500);
                 digitalWrite(gpio, HIGH);
                 delayMicroseconds((param::T_REF_MAX + param::T_CYCLE_FAST_MAX));
@@ -596,6 +597,7 @@ namespace ltc6811
         void loop()
         {
             registers::req_write_pwm.set(data::pwm);
+            registers::req_write_config_a.set(data::config);
             get_cell();
             get_temp();
             get_status();
