@@ -3,6 +3,7 @@
 // #include "isl28022.h"
 #include "bms_can_utils.h"
 #include "ltc6811_driver.h"
+#include "bms_udp_utils.h"
 
 // #include <string>
 
@@ -35,6 +36,7 @@ void setup()
   // Serial.println("cell 0, cell 1, cell 2, cell 3, cell 4, cell 5, cell 6, cell 7, cell 8, cell 9, cell 10, cell 11,");
   // bms.SetPwmDuty(LTC6811::Duty::Ratio_12_16);
   can::driver::setup();
+  udp::driver::setup();
   ltc6811::driver::setup();
 }
 
@@ -42,6 +44,7 @@ void loop()
 {
   delay(1000);
   ltc6811::driver::loop();
+  udp::driver::report(100, 100, ltc6811::data::cell_data, ltc6811::data::temp_data);
   can::driver::report(100, 100, ltc6811::data::cell_data, ltc6811::data::temp_data);
 }
 

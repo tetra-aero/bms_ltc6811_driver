@@ -36,7 +36,7 @@ namespace udp
         {
             const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.data());
             const size_t size = sizeof(data) > 8 ? 8 : sizeof(data);
-            UDP.writeTo(buffer, IPAdress(board::HOST_IP_ADDRESS.data()), 12351);
+            UDP.writeTo(buffer, size, IPAddress(board::HOST_IP_ADDRESS.data()), 12351);
         }
 
         void setup()
