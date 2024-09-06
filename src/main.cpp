@@ -40,6 +40,7 @@ void setup()
 
 void loop()
 {
+  delay(1000);
   ltc6811::driver::loop();
   can::driver::report(100, 100, ltc6811::data::cell_data, ltc6811::data::temp_data);
 }

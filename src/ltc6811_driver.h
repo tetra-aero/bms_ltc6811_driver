@@ -232,8 +232,15 @@ namespace ltc6811
                 }
             }
 
-            void set(Responses<uint8_t> &data)
+            void set(Responses<uint8_t> &messages, data::Pwm &data)
             {
+                data::ic_id ic{board::CHANE_LENGTH - 1};
+                for (auto &message : messages.data)
+                {
+                    std::copy(data.data[ic].begin(), data.data[ic].end(), message.data.begin());
+                    message.CRC = utils::CRC(message.data);
+                    ic--;
+                }
             }
         };
 
@@ -383,7 +390,16 @@ namespace ltc6811
 
         struct Config
         {
-            data::ic_id ic{};
+            uint8_t create_bitmask(const std::array<bool, board::CELL_NUM_PER_IC> &dccx, uint8_t begin, uint8_t end)
+            {
+                uint8_t ret;
+                for (size_t i = begin; i <= end; i++)
+                {
+                    ret |= (dccx[i] ? (0x01 << i) : 0x00);
+                }
+                return ret;
+            }
+
             void parse(Responses<uint8_t> &data)
             {
                 data::ic_id ic{};
@@ -398,8 +414,15 @@ namespace ltc6811
                 }
             }
 
-            void set(Responses<uint8_t> &res)
+            void set(Responses<uint8_t> &messages, const data::Config &dcc)
             {
+                data::ic_id ic{board::CHANE_LENGTH - 1};
+                for (auto &message : messages.data)
+                {
+                    message.data[4] = create_bitmask(dcc.data[ic], 0, 7);
+                    message.data[5] = create_bitmask(dcc.data[ic], 8, 11);
+                    message.CRC = utils::CRC(message.data);
+                }
             }
         };
 
@@ -451,15 +474,10 @@ namespace ltc6811
                 return true;
             }
 
-            void set(uint8_t duty)
+            template <class D>
+            void set(D &data)
             {
-
-                C{}.set();
-            }
-
-            void set(std::array<std::array<uint8_t, board::CELL_NUM_PER_IC>> dcc)
-            {
-                C{}.set();
+                C{}.set(message, data);
             }
         };
 
@@ -577,6 +595,7 @@ namespace ltc6811
 
         void loop()
         {
+            registers::req_write_pwm.set(data::pwm);
             get_cell();
             get_temp();
             get_status();
