@@ -54,7 +54,8 @@ namespace ltc6811
 
         struct CellVoltage
         {
-            uint32_t sum{0};
+            uint32_t sum{};
+            uint32_t average{};
             board::CELL_DATA vol;
             std::pair<uint16_t, uint16_t> vol_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
             std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
@@ -64,6 +65,7 @@ namespace ltc6811
         struct Temperature
         {
             board::TEMP_DATA temp;
+            std::array<bool, board::CHANE_LENGTH> over;
             uint16_t battery_average;
             uint16_t pcb_average;
             std::array<int32_t, board::CHANE_LENGTH> vref2;
@@ -471,6 +473,18 @@ namespace ltc6811
                 utils::wakeup_port(spi, gpio);
                 digitalWrite(gpio, LOW);
                 spi.writeBytes(cmd.data(), sizeof(cmd));
+                std::array<uint8_t, 8 * board::CHANE_LENGTH> packet;
+                uint8_t index{};
+                for (const Response<T> &board : message.data)
+                {
+                    for (auto x : board.data)
+                    {
+                        packet[index++] = x;
+                    }
+                    packet[index++] = (board.CRC >> 8) & 0xFF;
+                    packet[index++] = board.CRC & 0xFF;
+                }
+                spi.writeBytes(packet.data(), sizeof(packet));
                 digitalWrite(gpio, HIGH);
                 return true;
             }
@@ -523,16 +537,42 @@ namespace ltc6811
 
     namespace driver
     {
+        std::optional<bool> set_config(data::Config config)
+        {
+            registers::req_write_config_a.set(config);
+            registers::req_write_config_a.request(SPI, SS);
+            delayMicroseconds(500);
+            auto res = registers::req_read_config_a.request(SPI, SS);
+            if (!res.has_value())
+                std::nullopt;
+            registers::req_read_config_a.parse();
+            return true;
+        }
+
+        std::optional<std::reference_wrapper<data::Config>> get_config()
+        {
+            auto res = registers::req_read_config_a.request(SPI, SS);
+            if (!res.has_value())
+                return std::nullopt;
+            registers::req_read_config_a.parse();
+            return data::config;
+        }
+
         std::optional<bool> set_duty(param::Duty duty)
         {
+            data::Pwm pwm;
+            for (auto &ic : pwm.data)
+            {
+                for (auto &cell : ic)
+                    cell = static_cast<uint8_t>(duty);
+            }
+            registers::req_write_pwm.set(pwm);
             registers::req_write_pwm.request(SPI, SS);
             delayMicroseconds(500);
             auto res = registers::req_read_pwm.request(SPI, SS);
             if (!res.has_value())
                 std::nullopt;
             registers::req_read_pwm.parse();
-            if (data::pwm.data[0][0] != static_cast<uint8_t>(duty))
-                std::nullopt;
             return true;
         }
 
@@ -585,6 +625,62 @@ namespace ltc6811
             return data::temp_data;
         }
 
+        namespace discharge
+        {
+            struct Method_Min
+            {
+                data::Config update_dcc(uint32_t delta)
+                {
+                    data::Config config;
+                    data::ic_id ic = board::CHANE_LENGTH - 1;
+                    for (auto &board : config.data)
+                    {
+                        if (data::temp_data.over[ic])
+                        {
+                            ic--;
+                            continue;
+                        }
+                        for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
+                            if (data::cell_data.vol[ic][cell] > data::cell_data.vol_range.first + delta)
+                                board[cell] = true;
+                        ic--;
+                    }
+                    return config;
+                }
+            };
+
+            struct Method_Mean
+            {
+                data::Config update_dcc(uint32_t delta)
+                {
+                    data::Config config;
+                    data::ic_id ic = board::CHANE_LENGTH - 1;
+                    for (auto &board : data::config.data)
+                    {
+                        if (data::temp_data.over[ic])
+                        {
+                            ic--;
+                            continue;
+                        }
+                        for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
+                            if (data::cell_data.vol[ic][cell] > data::cell_data.average + delta)
+                                board[cell] = true;
+                        ic--;
+                    }
+                    return config;
+                }
+            };
+
+            template <class C>
+            void discharge()
+            {
+                data::Config config = C{}.update_dcc(100);
+                set_config(config);
+                delayMicroseconds(500);
+                get_config();
+            }
+        };
+
         void setup()
         {
             SPI.begin();
@@ -596,11 +692,10 @@ namespace ltc6811
 
         void loop()
         {
-            registers::req_write_pwm.set(data::pwm);
-            registers::req_write_config_a.set(data::config);
             get_cell();
             get_temp();
             get_status();
+            discharge::discharge<discharge::Method_Min>();
         }
     };
 };
