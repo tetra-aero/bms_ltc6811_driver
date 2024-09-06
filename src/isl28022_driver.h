@@ -2,7 +2,6 @@
 
 #include <Wire.h>
 #include <Arduino.h>
-
 #include <optional>
 
 class ISL28022
@@ -144,8 +143,9 @@ public:
     {
     }
 
-    void begin()
+    void setup()
     {
+        hi2c_.begin();
         write_register(REG::CONFIG, make_mask(CONFIG::RST));
         // busvol = 60v, shuntvol = +-320mv, resolution = 15bit, detect both bus and shunt vol
         write_register(REG::CONFIG, make_mask(CONFIG::BRNG0, CONFIG::BRNG0, CONFIG::BRNG1, CONFIG::PG1, CONFIG::PG0, CONFIG::BADC1, CONFIG::BADC0, CONFIG::SADC1, CONFIG::SADC0, CONFIG::MODE0, CONFIG::MODE1, CONFIG::MODE2));
@@ -158,7 +158,7 @@ public:
         Serial.println(("#factor_power " + std::to_string(factor_power())).c_str());
     }
 
-    std::optional<float> GetShuntVoltage()
+    std::optional<float> get_shunt_voltage()
     {
         auto result = read_register(REG::SHUNTVOLT);
         if (result.has_value())
@@ -171,7 +171,7 @@ public:
         }
     }
 
-    std::optional<float> GetBusVoltage() // OK
+    std::optional<float> get_bus_voltage() // OK
     {
         auto result = read_register(REG::BUSVOLT);
         if (result.has_value())
@@ -184,7 +184,7 @@ public:
         }
     }
 
-    std::optional<float> GetPower()
+    std::optional<float> get_power()
     {
         auto result = read_register(REG::POWER);
         if (result.has_value())
@@ -197,7 +197,7 @@ public:
         }
     }
 
-    std::optional<float> GetCurrent()
+    std::optional<float> get_current()
     {
         auto result = read_register(REG::CURRENT);
         if (result.has_value())
@@ -209,4 +209,56 @@ public:
             return std::nullopt;
         }
     }
+};
+
+namespace isl28022
+{
+    namespace data
+    {
+        float current;
+        float power;
+        float bus_voltage;
+        float shut_voltage;
+    };
+
+    namespace driver
+    {
+        ISL28022 pm(Wire, 0b1000000);
+        void setup()
+        {
+            pm.setup();
+        }
+
+        void loop()
+        {
+            {
+                auto res = pm.get_current();
+                if (res.has_value())
+                {
+                    data::current = res.value();
+                }
+            }
+            {
+                auto res = pm.get_bus_voltage();
+                if (res.has_value())
+                {
+                    data::bus_voltage = res.value();
+                }
+            }
+            {
+                auto res = pm.get_shunt_voltage();
+                if (res.has_value())
+                {
+                    data::shut_voltage = res.value();
+                }
+            }
+            {
+                auto res = pm.get_power();
+                if (res.has_value())
+                {
+                    data::power = res.value();
+                }
+            }
+        }
+    };
 };

@@ -1,14 +1,12 @@
 #include <Arduino.h>
-// #include "ltc6811.h"
-// #include "isl28022.h"
 #include "bms_can_utils.h"
 #include "ltc6811_driver.h"
+#include "isl28022_driver.h"
 #include "bms_udp_utils.h"
 
 // #include <string>
 
 // LTC6811 bms(SPI);
-// ISL28022 pm(Wire, 0b1000000);
 
 // static constexpr bool DISCHARGE = true;
 
@@ -29,7 +27,7 @@ void setup()
   // SPI.begin();
   // SPI.beginTransaction(mySPISettings);
   // Wire.begin();
-  Serial.begin(9600);
+  Serial.begin(115200);
   // delay(20);
   // pinMode(SS, OUTPUT);
   // pinMode(MISO, INPUT);
@@ -38,14 +36,16 @@ void setup()
   can::driver::setup();
   udp::driver::setup();
   ltc6811::driver::setup();
+  isl28022::driver::setup();
 }
 
 void loop()
 {
   delay(1000);
   ltc6811::driver::loop();
-  udp::driver::report(100, 100, ltc6811::data::cell_data, ltc6811::data::temp_data);
-  can::driver::report(100, 100, ltc6811::data::cell_data, ltc6811::data::temp_data);
+  isl28022::driver::loop();
+  udp::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
+  can::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
 }
 
 //   {
