@@ -39,7 +39,7 @@ LTC6811::LTC6811(SPIClass &hspi, Mode mode, DCP dcp, CellCh cell, AuxCh aux, STS
 
     slave_cfg_tx.register_group.fill({0xFC, 0, 0, 0, 0, 0});
 
-    WakeFromSleep(); // TODO Takes 2.2s to fall asleep so if this has to be called after this, we have problems
+    WakeFromSleep();
 }
 
 void LTC6811::WakeFromSleep(void)
@@ -47,7 +47,7 @@ void LTC6811::WakeFromSleep(void)
     for (size_t i = 0; i < kDaisyChainLength; ++i)
     {
         digitalWrite(SS, LOW);
-        delayMicroseconds(T_WAKE_MAX); // Guarantees the LTC6811 will be in standby
+        delayMicroseconds(T_WAKE_MAX);
         digitalWrite(SS, HIGH);
         delayMicroseconds(10);
     }

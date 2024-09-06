@@ -2,7 +2,6 @@
 
 #include <array>
 #include <Arduino.h>
-#include "SPI.h"
 
 namespace board
 {
@@ -15,6 +14,8 @@ namespace board
     static constexpr uint32_t THURMISTA_NUM_PER_IC = 5;
     static constexpr uint32_t REGISTER_BYTES = 8;
     static constexpr uint32_t WAKEUP_DELAY = 400;
+    static constexpr uint32_t B_VALUE = 4550;
+    static constexpr uint32_t THRMISTA_VOLTAGE = 30000.0;
 
     using CELL_DATA = std::array<std::array<uint16_t, CELL_NUM_PER_IC>, CHANE_LENGTH>;
     using TEMP_DATA = std::array<std::array<int32_t, THURMISTA_NUM_PER_IC>, CHANE_LENGTH>;

@@ -1,7 +1,8 @@
 #include <Arduino.h>
 // #include "ltc6811.h"
 // #include "isl28022.h"
-#include "bms_can.h"
+#include "bms_can_utils.h"
+#include "ltc6811_driver.h"
 
 // #include <string>
 
@@ -33,16 +34,14 @@ void setup()
   // pinMode(MISO, INPUT);
   // Serial.println("cell 0, cell 1, cell 2, cell 3, cell 4, cell 5, cell 6, cell 7, cell 8, cell 9, cell 10, cell 11,");
   // bms.SetPwmDuty(LTC6811::Duty::Ratio_12_16);
-  Serial.println("CAN_SETUP");
   can::driver::setup();
+  ltc6811::driver::setup();
 }
 
 void loop()
 {
-  delay(1000);
-  Serial.println("CAN_SEND");
+  ltc6811::driver::loop();
   can::driver::report(100, 100, ltc6811::data::cell_data, ltc6811::data::temp_data);
-  Serial.println("CAN_FINISH");
 }
 
 //   {
@@ -176,58 +175,3 @@ void loop()
 //   }
 // }
 // delay(1000);
-// Copyright (c) Sandeep Mistry. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-// #include <CAN.h>
-
-// void setup()
-// {
-//   Serial.begin(9600);
-//   while (!Serial)
-//     ;
-
-//   Serial.println("CAN Sender");
-
-//   // start the CAN bus at 500 kbps
-//   CAN.setPins(34, 32);
-//   if (!CAN.begin(500E3))
-//   {
-//     Serial.println("Starting CAN failed!");
-//     while (1)
-//       ;
-//   }
-// }
-
-// void loop()
-// {
-//   // send packet: id is 11 bits, packet can contain up to 8 bytes of data
-//   Serial.print("Sending packet ... ");
-
-//   CAN.beginPacket(0x12);
-//   CAN.write('h');
-//   CAN.write('e');
-//   CAN.write('l');
-//   CAN.write('l');
-//   CAN.write('o');
-//   CAN.endPacket();
-
-//   Serial.println("done");
-
-//   delay(1000);
-
-//   // send extended packet: id is 29 bits, packet can contain up to 8 bytes of data
-//   Serial.print("Sending extended packet ... ");
-
-//   CAN.beginExtendedPacket(0xabcdef);
-//   CAN.write('w');
-//   CAN.write('o');
-//   CAN.write('r');
-//   CAN.write('l');
-//   CAN.write('d');
-//   CAN.endPacket();
-
-//   Serial.println("done");
-
-//   delay(1000);
-// }
