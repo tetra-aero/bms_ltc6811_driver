@@ -108,10 +108,37 @@ namespace ltc6811
             Serial.println(("# ltc6811: Vol: Sum : " + std::to_string(cell_data.average)).c_str());
             for (size_t j = 0; j < board::CHANE_LENGTH; j++)
             {
-                Serial.print(("# ltc6811: Vol: Dcc : IC" + std::to_string(j) + " Cell :").c_str());
+                Serial.print(("# ltc6811: DisCharge : IC" + std::to_string(j) + " Cell :").c_str());
                 for (size_t i = 0; i < board::CELL_NUM_PER_IC; i++)
                 {
-                    Serial.print((std::to_string(i) + std::to_string(config.data[j][i]) + " ").c_str());
+                    Serial.print((std::to_string(i) + "-").c_str());
+                    if (config.data[j][i])
+                    {
+                        Serial.print("RUN");
+                    }
+                    else
+                    {
+                        Serial.print("STOP");
+                    }
+                    Serial.print(" ");
+                }
+                Serial.println();
+            }
+            for (size_t j = 0; j < board::CHANE_LENGTH; j++)
+            {
+                Serial.print(("# ltc6811: Cell Vol: IC" + std::to_string(j) + " Cell :").c_str());
+                for (size_t i = 0; i < board::CELL_NUM_PER_IC; i++)
+                {
+                    Serial.print((std::to_string(i) + "-" + std::to_string(cell_data.vol[j][i] / 10000) + "V ").c_str());
+                }
+                Serial.println();
+            }
+            for (size_t j = 0; j < board::CHANE_LENGTH; j++)
+            {
+                Serial.print(("# ltc6811: Temp: IC" + std::to_string(j) + " Thurmista :").c_str());
+                for (size_t i = 0; i < board::CELL_NUM_PER_IC; i++)
+                {
+                    Serial.print((std::to_string(i) + "-" + std::to_string(temp_data.temp[j][i] / 10000) + "deg").c_str());
                 }
                 Serial.println();
             }
@@ -140,11 +167,11 @@ namespace ltc6811
             0xa76f, 0x62f6, 0x69c4, 0xac5d, 0x7fa0, 0xba39, 0xb10b, 0x7492, 0x5368, 0x96f1, 0x9dc3, 0x585a, 0x8ba7, 0x4e3e, 0x450c, 0x8095};
 
         template <typename T, size_t S>
-        constexpr uint16_t CRC(const std::array<T, S> &arr, size_t size = S)
+        constexpr uint16_t CRC(const std::array<T, S> &arr, size_t size = S * sizeof(T))
         {
             uint16_t res = 0x10;
             uint16_t idx = 0x00;
-            const uint8_t *data = reinterpret_cast<const uint8_t *>(arr.data());
+            uint8_t const *data = reinterpret_cast<uint8_t const *>(arr.data());
 
             for (size_t i = 0; i < size; ++i)
             {
@@ -460,14 +487,17 @@ namespace ltc6811
             }
             std::optional<std::reference_wrapper<Responses<T>>> request(SPIClass &spi, uint8_t gpio)
             {
-                uint8_t *buffer = reinterpret_cast<uint8_t *>(res.data.begin());
+                uint8_t *buffer = reinterpret_cast<uint8_t *>(res.data.data());
                 utils::wakeup_port(spi, gpio);
                 digitalWrite(gpio, LOW);
                 spi.writeBytes(cmd.data(), sizeof(cmd));
                 for (size_t i = 0; i < board::CHANE_LENGTH * board::REGISTER_BYTES; i++)
                 {
                     buffer[i] = spi.transfer(0xFF);
+                    Serial.print(std::to_string(buffer[i]).c_str());
+                    Serial.print(" ");
                 }
+                Serial.println("");
                 digitalWrite(gpio, HIGH);
                 if (!res.check_crc())
                     return std::nullopt;
@@ -713,10 +743,19 @@ namespace ltc6811
 
         void loop()
         {
-            get_cell();
-            get_temp();
-            get_status();
-            discharge::discharge<discharge::Method_Min>();
+            if (get_cell().has_value())
+            {
+                Serial.println("OK");
+            }
+            if (get_temp().has_value())
+            {
+                Serial.println("OK");
+            }
+            if (get_status().has_value())
+            {
+                Serial.println("OK");
+            }
+            // discharge::discharge<discharge::Method_Min>();
         }
     };
 };

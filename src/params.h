@@ -9,7 +9,7 @@ namespace board
     static constexpr uint32_t CAN_RX_PIN = 34;
     static constexpr uint32_t CAN_TX_PIN = 32;
     static constexpr uint32_t CAN_BITRATE = 125000;
-    static constexpr uint32_t CHANE_LENGTH = 9;
+    static constexpr uint32_t CHANE_LENGTH = 1;
     static constexpr uint32_t CELL_NUM_PER_IC = 12;
     static constexpr uint32_t THURMISTA_NUM_PER_IC = 5;
     static constexpr uint32_t REGISTER_BYTES = 8;
@@ -17,9 +17,9 @@ namespace board
     static constexpr uint32_t B_VALUE = 4550;
     static constexpr uint32_t THRMISTA_VOLTAGE = 30000.0;
     static constexpr std::array<uint8_t, 4> HOST_IP_ADDRESS = {192, 168, 3, 11};
-    static constexpr std::array<uint8_t, 4> DEVICE_IP_ADDRESS(192, 168, 3, 14);
-    static constexpr std::array<uint8_t, 4> GATEWAY_ADDRESS(192, 168, 3, 1);
-    static constexpr std::array<uint8_t, 4> SUBNET_MASK(255, 255, 255, 0);
+    static constexpr std::array<uint8_t, 4> DEVICE_IP_ADDRESS = {192, 168, 3, 14};
+    static constexpr std::array<uint8_t, 4> GATEWAY_ADDRESS = {192, 168, 3, 1};
+    static constexpr std::array<uint8_t, 4> SUBNET_MASK = {255, 255, 255, 0};
     static constexpr const char *SSID = "***********";
     static constexpr const char *PASSWORD = "**********";
 

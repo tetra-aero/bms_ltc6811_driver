@@ -61,6 +61,7 @@ namespace can
             }
             CAN.filterExtended((static_cast<uint32_t>(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST) << 8) + board::CAN_ID);
             CAN.onReceive(response_cellvol);
+            CAN.setTimeout(1000);
             return false;
         }
 
