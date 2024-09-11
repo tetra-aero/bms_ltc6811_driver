@@ -17,6 +17,9 @@ namespace board
     static constexpr uint32_t B_VALUE = 4550;
     static constexpr uint32_t THRMISTA_VOLTAGE = 30000.0;
     static constexpr std::array<uint8_t, 4> HOST_IP_ADDRESS = {192, 168, 3, 11};
+    static constexpr std::array<uint8_t, 4> DEVICE_IP_ADDRESS(192, 168, 3, 14);
+    static constexpr std::array<uint8_t, 4> GATEWAY_ADDRESS(192, 168, 3, 1);
+    static constexpr std::array<uint8_t, 4> SUBNET_MASK(255, 255, 255, 0);
     static constexpr const char *SSID = "***********";
     static constexpr const char *PASSWORD = "**********";
 
