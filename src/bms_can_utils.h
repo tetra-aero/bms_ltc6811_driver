@@ -16,6 +16,8 @@ namespace can
             CAN_PACKET_BMS_STATUS_TEMPERATURES,
             CAN_PACKET_BMS_STATUS_AUX_IV_SAFETY_WATCHDOG,
             CAN_PACKET_BMS_KEEP_ALIVE_SAFETY,
+            CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL,
+            CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST,
         };
 
         constexpr uint32_t create_packet_id(CAN_PACKET_ID packet_id, uint32_t board_id)
@@ -27,6 +29,8 @@ namespace can
 
     namespace driver
     {
+        bool request = false;
+
         template <typename T, size_t S>
         void transmit(uint32_t packet_id, std::array<T, S> &data)
         {
@@ -38,10 +42,26 @@ namespace can
             CAN.endPacket();
         }
 
+        uint16_t create_cell_segment(ltc6811::data::ic_id ic, ltc6811::data::cell_id cell, uint16_t data)
+        {
+            return ((ic * board::CELL_NUM_PER_IC + cell) << 9) + (data / 10);
+        };
+
+        void response_cellvol(int packetSize)
+        {
+            request = true;
+        }
+
         bool setup()
         {
             CAN.setPins(board::CAN_RX_PIN, board::CAN_TX_PIN);
-            return CAN.begin(board::CAN_BITRATE * 2);
+            if (!CAN.begin(board::CAN_BITRATE * 2))
+            {
+                return true;
+            }
+            CAN.filterExtended((static_cast<uint32_t>(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST) << 8) + board::CAN_ID);
+            CAN.onReceive(response_cellvol);
+            return false;
         }
 
         bool report(uint32_t voltage, uint32_t current, ltc6811::data::CellVoltage &cell_data, ltc6811::data::Temperature &temp_data)
@@ -67,8 +87,23 @@ namespace can
                         temp_data.temp_range.second};
                 transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
             }
+            if (request)
+            {
+                std::array<uint16_t, 4> data;
+                for (size_t i = 0; i < ltc6811::data::cell_data.vol.size(); i++)
+                {
+                    data = {create_cell_segment(i, 0, ltc6811::data::cell_data.vol[i][0]), create_cell_segment(i, 1, ltc6811::data::cell_data.vol[i][1]), create_cell_segment(i, 2, ltc6811::data::cell_data.vol[i][2]), create_cell_segment(i, 3, ltc6811::data::cell_data.vol[i][3])};
+                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                    data = {create_cell_segment(i, 4, ltc6811::data::cell_data.vol[i][4]), create_cell_segment(i, 5, ltc6811::data::cell_data.vol[i][5]), create_cell_segment(i, 6, ltc6811::data::cell_data.vol[i][6]), create_cell_segment(i, 7, ltc6811::data::cell_data.vol[i][7])};
+                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                    data = {create_cell_segment(i, 8, ltc6811::data::cell_data.vol[i][8]), create_cell_segment(i, 9, ltc6811::data::cell_data.vol[i][9]), create_cell_segment(i, 10, ltc6811::data::cell_data.vol[i][10]), create_cell_segment(i, 11, ltc6811::data::cell_data.vol[i][11])};
+                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                }
+                request = false;
+            }
             return true;
         }
+
     };
 
 };

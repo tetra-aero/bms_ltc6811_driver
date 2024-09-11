@@ -5,11 +5,11 @@
 
 namespace board
 {
-    static constexpr uint32_t CAN_ID = 0x00;
+    static constexpr uint32_t CAN_ID = 0x01;
     static constexpr uint32_t CAN_RX_PIN = 34;
     static constexpr uint32_t CAN_TX_PIN = 32;
     static constexpr uint32_t CAN_BITRATE = 125000;
-    static constexpr uint32_t CHANE_LENGTH = 2;
+    static constexpr uint32_t CHANE_LENGTH = 9;
     static constexpr uint32_t CELL_NUM_PER_IC = 12;
     static constexpr uint32_t THURMISTA_NUM_PER_IC = 5;
     static constexpr uint32_t REGISTER_BYTES = 8;
