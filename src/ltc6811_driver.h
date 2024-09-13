@@ -60,6 +60,25 @@ namespace ltc6811
             std::pair<uint16_t, uint16_t> vol_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
             std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
             std::pair<ic_id, cell_id> max_id{0xFF, 0xFF};
+            void update(ic_id ic, cell_id cell, uint16_t voltage)
+            {
+                vol[ic][cell] = voltage;
+                sum += voltage;
+                if (vol_range.first > voltage)
+                {
+                    vol_range.first = voltage;
+                    min_id = {ic, cell};
+                }
+                if (voltage > vol_range.second)
+                {
+                    vol_range.second = voltage;
+                    max_id = {ic, cell};
+                }
+            }
+            void update_statistic()
+            {
+                average = sum / (board::CHANE_LENGTH * board::CELL_NUM_PER_IC);
+            }
         } cell_data;
 
         struct Temperature
@@ -72,6 +91,44 @@ namespace ltc6811
             std::pair<uint16_t, uint16_t> temp_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
             std::pair<ic_id, thrm_id> min_id{0xFF, 0xFF};
             std::pair<ic_id, thrm_id> max_id{0xFF, 0xFF};
+
+            void update(ic_id ic, thrm_id cell, uint16_t temperature)
+            {
+                temp[ic][cell] = temperature;
+                if (temp_range.first > temperature)
+                {
+                    temp_range.first = temperature;
+                    min_id = {ic, cell};
+                }
+                if (temperature > temp_range.second)
+                {
+                    temp_range.second = temperature;
+                    max_id = {ic, cell};
+                }
+            }
+
+            void update_statistic()
+            {
+                pcb_average = 0;
+                battery_average = 0;
+                for (auto &x : temp)
+                {
+                    for (const auto index : board::PCB_THRMISTA_ID)
+                    {
+                        pcb_average += x[index];
+                    }
+                }
+
+                for (const auto index : board::BATTERY_THRMISTA_ID)
+                {
+                    for (auto &x : temp)
+                    {
+                        battery_average += x[index];
+                    }
+                }
+                pcb_average /= (board::CHANE_LENGTH * board::PCB_THRMISTA_ID.size());
+                battery_average /= (board::CHANE_LENGTH * board::BATTERY_THRMISTA_ID.size());
+            }
         } temp_data;
 
         struct Status
@@ -337,7 +394,8 @@ namespace ltc6811
                     data::cell_id cell = 0;
                     for (const uint16_t vol : res.data)
                     {
-                        data::cell_data.vol[ic][cell++] = vol;
+                        data::cell_data.update(ic, cell, vol);
+                        cell++;
                     }
                     ic++;
                 }
@@ -355,7 +413,8 @@ namespace ltc6811
                     data::cell_id cell = 3;
                     for (const uint16_t vol : res.data)
                     {
-                        data::cell_data.vol[ic][cell++] = vol;
+                        data::cell_data.update(ic, cell, vol);
+                        cell++;
                     }
                     ic++;
                 }
@@ -373,7 +432,8 @@ namespace ltc6811
                     data::cell_id cell = 6;
                     for (const uint16_t vol : res.data)
                     {
-                        data::cell_data.vol[ic][cell++] = vol;
+                        data::cell_data.update(ic, cell, vol);
+                        cell++;
                     }
                     ic++;
                 }
@@ -391,7 +451,8 @@ namespace ltc6811
                     data::cell_id cell = 9;
                     for (const uint16_t vol : res.data)
                     {
-                        data::cell_data.vol[ic][cell++] = vol;
+                        data::cell_data.update(ic, cell, vol);
+                        cell++;
                     }
                     ic++;
                 }
@@ -409,7 +470,7 @@ namespace ltc6811
                     data::cell_id cell = 0;
                     for (const uint16_t temp : res.data)
                     {
-                        data::temp_data.temp[ic][cell++] = utils::Bvalue(temp);
+                        data::temp_data.update(ic, cell, utils::Bvalue(temp));
                     }
                     ic++;
                 }
@@ -427,7 +488,7 @@ namespace ltc6811
                     data::thrm_id thrm = 3;
                     for (const uint16_t temp : res.data)
                     {
-                        data::temp_data.temp[ic][thrm++] = utils::Bvalue(temp);
+                        data::temp_data.update(ic, thrm, utils::Bvalue(temp));
                         if (thrm == 5)
                         {
                             data::temp_data.vref2[ic] = temp;
@@ -661,6 +722,7 @@ namespace ltc6811
             registers::req_read_cell_b.parse();
             registers::req_read_cell_c.parse();
             registers::req_read_cell_d.parse();
+            data::cell_data.update_statistic();
             return data::cell_data;
         }
 
@@ -673,6 +735,7 @@ namespace ltc6811
                 return std::nullopt;
             registers::req_read_temp_a.parse();
             registers::req_read_temp_b.parse();
+            data::temp_data.update_statistic();
             return data::temp_data;
         }
 

@@ -33,8 +33,8 @@ void setup()
   // pinMode(MISO, INPUT);
   // Serial.println("cell 0, cell 1, cell 2, cell 3, cell 4, cell 5, cell 6, cell 7, cell 8, cell 9, cell 10, cell 11,");
   // bms.SetPwmDuty(LTC6811::Duty::Ratio_12_16);
-  can::driver::setup();
-  udp::driver::setup();
+  // can::driver::setup();
+  // udp::driver::setup();
   ltc6811::driver::setup();
   isl28022::driver::setup();
 }
