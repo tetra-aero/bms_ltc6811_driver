@@ -44,7 +44,7 @@ namespace ltc6811
         constexpr uint32_t T_REF_MAX = 4400;
         constexpr uint32_t T_CYCLE_FAST_MAX = 1185;
         static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Disable;
-        static constexpr Duty DUTY_RATIO = Duty::Ratio_12_16;
+        static constexpr Duty DUTY_RATIO = Duty::Ratio_4_16;
         static constexpr Mode DETECTION_MODE = Mode::Normal;
 
         static constexpr float TEMP_LIMIT = 50.0;
@@ -72,6 +72,12 @@ namespace ltc6811
             std::pair<uint16_t, uint16_t> vol_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
             std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
             std::pair<ic_id, cell_id> max_id{0xFF, 0xFF};
+            void clear()
+            {
+                sum = 0;
+                vol_range = {std::numeric_limits<uint16_t>::max(),
+                             std::numeric_limits<uint16_t>::min()};
+            }
             void update(ic_id ic, cell_id cell, uint16_t voltage)
             {
                 vol[ic][cell] = voltage;
@@ -103,6 +109,12 @@ namespace ltc6811
             std::pair<int32_t, int32_t> temp_range{std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
             std::pair<ic_id, thrm_id> min_id{0xFF, 0xFF};
             std::pair<ic_id, thrm_id> max_id{0xFF, 0xFF};
+
+            void clear()
+            {
+                temp_range = {std::numeric_limits<int32_t>::max(),
+                              std::numeric_limits<int32_t>::min()};
+            }
 
             void update(ic_id ic, thrm_id cell, int32_t celsius)
             {
@@ -203,6 +215,15 @@ namespace ltc6811
             }
             for (size_t j = 0; j < board::CHANE_LENGTH; j++)
             {
+                Serial.print(("# ltc6811: Pwm Ratio: IC" + std::to_string(j) + " Cell :").c_str());
+                for (size_t i = 0; i < board::CELL_NUM_PER_IC; i++)
+                {
+                    Serial.print((std::to_string(i) + "-" + std::to_string(static_cast<float>(pwm.data[j][i] + 1) * 1 / 16) + " ").c_str());
+                }
+                Serial.println();
+            }
+            for (size_t j = 0; j < board::CHANE_LENGTH; j++)
+            {
                 Serial.print(("# ltc6811: Cell Vol: IC" + std::to_string(j) + " Cell :").c_str());
                 for (size_t i = 0; i < board::CELL_NUM_PER_IC; i++)
                 {
@@ -212,13 +233,15 @@ namespace ltc6811
             }
             for (size_t j = 0; j < board::CHANE_LENGTH; j++)
             {
-                Serial.print(("# ltc6811: Temp: IC" + std::to_string(j) + " Thurmista :").c_str());
+                Serial.print(("# ltc6811: Temp: IC" + std::to_string(j) + " Thermista :").c_str());
                 for (size_t i = 0; i < board::THURMISTA_NUM_PER_IC; i++)
                 {
                     Serial.print((std::to_string(i) + "-" + std::to_string(static_cast<float>(temp_data.temp[j][i]) / 1000) + "deg ").c_str());
                 }
+                if (temp_data.over[j])
+                    Serial.print(" OVERTEMP ");
                 Serial.println();
-                Serial.println(("# ltc6811: Temp: IC" + std::to_string(j) + " Thurmista Voltage : " + std::to_string(static_cast<float>(temp_data.vref2[j]) / 10000) + "V").c_str());
+                Serial.println(("# ltc6811: Temp: IC" + std::to_string(j) + " Thermista Voltage : " + std::to_string(static_cast<float>(temp_data.vref2[j]) / 10000) + "V").c_str());
             }
         }
 
@@ -257,7 +280,8 @@ namespace ltc6811
                 res = res << 8 ^ lookup[idx];
             }
             res = res << 1;
-            return res;
+            uint16_t ret = ((res & 0xFF00) >> 8 | (res & 0x00FF) << 8);
+            return ret;
         }
 
         void wakeup_port(SPIClass &spi, uint8_t gpio)
@@ -317,7 +341,7 @@ namespace ltc6811
 
         constexpr COMMANDCRC create_command_crc(COMMAND command)
         {
-            return {command[0], command[1], static_cast<uint8_t>(utils::CRC(command, 2) >> 8), static_cast<uint8_t>(utils::CRC(command, 2))};
+            return {command[0], command[1], static_cast<uint8_t>(utils::CRC(command, 2)), static_cast<uint8_t>(utils::CRC(command, 2) >> 8)};
         }
 
         template <typename T>
@@ -335,8 +359,7 @@ namespace ltc6811
             {
                 for (Response<T> &x : data)
                 {
-                    uint16_t crc = ((x.CRC & 0xFF00) >> 8) | ((x.CRC & 0x00FF) << 8);
-                    if (crc != utils::CRC(x.data))
+                    if (x.CRC != utils::CRC(x.data))
                         return false;
                 }
                 return true;
@@ -366,7 +389,8 @@ namespace ltc6811
                 data::ic_id ic{board::CHANE_LENGTH - 1};
                 for (auto &message : messages.data)
                 {
-                    std::copy(data.data[ic].begin(), data.data[ic].end(), message.data.begin());
+                    uint8_t pwm_reg_val = static_cast<uint8_t>((data.data[ic][1]) << 4 | data.data[ic][0]);
+                    message.data = {pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val};
                     message.CRC = utils::CRC(message.data);
                     ic--;
                 }
@@ -410,7 +434,6 @@ namespace ltc6811
             void parse(Responses<uint16_t> &data)
             {
                 data::ic_id ic{};
-                data::cell_data.sum = 0;
                 for (const Response<uint16_t> &res : data.data)
                 {
                     data::cell_id cell = 0;
@@ -488,7 +511,6 @@ namespace ltc6811
                     data::thrm_id thrm = 0;
                     for (const uint16_t temp : res.data)
                     {
-                        Serial.println(std::to_string(temp).c_str());
                         data::temp_data.update(ic, thrm++, utils::Bvalue(temp));
                     }
                     ic++;
@@ -526,10 +548,10 @@ namespace ltc6811
         {
             uint8_t create_bitmask(const std::array<bool, board::CELL_NUM_PER_IC> &dccx, uint8_t begin, uint8_t end)
             {
-                uint8_t ret;
+                uint8_t ret = 0;
                 for (size_t i = begin; i <= end; i++)
                 {
-                    ret |= (dccx[i] ? (0x01 << i) : 0x00);
+                    ret |= (dccx[i] ? (0x01 << (i - begin)) : 0x00);
                 }
                 return ret;
             }
@@ -615,8 +637,8 @@ namespace ltc6811
                     {
                         packet[index++] = x;
                     }
-                    packet[index++] = (board.CRC >> 8) & 0xFF;
                     packet[index++] = board.CRC & 0xFF;
+                    packet[index++] = (board.CRC >> 8) & 0xFF;
                 }
                 spi.writeBytes(packet.data(), sizeof(packet));
                 digitalWrite(gpio, HIGH);
@@ -678,7 +700,7 @@ namespace ltc6811
             delayMicroseconds(500);
             auto res = registers::req_read_config_a.request(SPI, SS);
             if (!res.has_value())
-                std::nullopt;
+                return std::nullopt;
             registers::req_read_config_a.parse();
             return true;
         }
@@ -705,7 +727,7 @@ namespace ltc6811
             delayMicroseconds(500);
             auto res = registers::req_read_pwm.request(SPI, SS);
             if (!res.has_value())
-                std::nullopt;
+                return std::nullopt;
             registers::req_read_pwm.parse();
             return true;
         }
@@ -733,6 +755,7 @@ namespace ltc6811
 
         std::optional<std::reference_wrapper<data::CellVoltage>> get_cell()
         {
+            data::cell_data.clear();
             registers::req_start_conv_cv.request(SPI, SS);
             auto res_a = registers::req_read_cell_a.request(SPI, SS);
             auto res_b = registers::req_read_cell_b.request(SPI, SS);
@@ -750,6 +773,7 @@ namespace ltc6811
 
         std::optional<std::reference_wrapper<data::Temperature>> get_temp()
         {
+            data::temp_data.clear();
             registers::req_start_conv_ax.request(SPI, SS);
             auto res_a = registers::req_read_temp_a.request(SPI, SS);
             auto res_b = registers::req_read_temp_b.request(SPI, SS);
@@ -779,6 +803,8 @@ namespace ltc6811
                         for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
                             if (data::cell_data.vol[ic][cell] > data::cell_data.vol_range.first + delta)
                                 board[cell] = true;
+                            else
+                                board[cell] = false;
                         ic--;
                     }
                     return config;
@@ -801,6 +827,8 @@ namespace ltc6811
                         for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
                             if (data::cell_data.vol[ic][cell] > data::cell_data.average + delta)
                                 board[cell] = true;
+                            else
+                                board[cell] = false;
                         ic--;
                     }
                     return config;
@@ -822,10 +850,14 @@ namespace ltc6811
         {
             SPI.begin();
             SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
+            delay(20);
             pinMode(SS, OUTPUT);
             pinMode(MISO, INPUT);
             utils::wakeup(SPI, SS);
-            set_duty(param::DUTY_RATIO);
+            if (!set_duty(param::DUTY_RATIO).has_value())
+            {
+                Serial.println("Error");
+            }
         }
 
         void loop()
