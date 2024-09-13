@@ -85,24 +85,24 @@ namespace ltc6811
         {
             board::TEMP_DATA temp;
             std::array<bool, board::CHANE_LENGTH> over;
-            uint32_t battery_average;
-            uint32_t pcb_average;
+            int32_t battery_average;
+            int32_t pcb_average;
             std::array<int32_t, board::CHANE_LENGTH> vref2;
-            std::pair<uint16_t, uint16_t> temp_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
+            std::pair<int32_t, int32_t> temp_range{std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
             std::pair<ic_id, thrm_id> min_id{0xFF, 0xFF};
             std::pair<ic_id, thrm_id> max_id{0xFF, 0xFF};
 
-            void update(ic_id ic, thrm_id cell, uint16_t temperature)
+            void update(ic_id ic, thrm_id cell, int32_t celsius)
             {
-                temp[ic][cell] = temperature;
-                if (temp_range.first > temperature)
+                temp[ic][cell] = celsius;
+                if (temp_range.first > celsius)
                 {
-                    temp_range.first = temperature;
+                    temp_range.first = celsius;
                     min_id = {ic, cell};
                 }
-                if (temperature > temp_range.second)
+                if (celsius > temp_range.second)
                 {
-                    temp_range.second = temperature;
+                    temp_range.second = celsius;
                     max_id = {ic, cell};
                 }
             }
@@ -198,6 +198,7 @@ namespace ltc6811
                     Serial.print((std::to_string(i) + "-" + std::to_string(static_cast<float>(temp_data.temp[j][i]) / 1000) + "deg ").c_str());
                 }
                 Serial.println();
+                Serial.println(("# ltc6811: Temp: IC" + std::to_string(j) + " Thurmista Voltage : " + std::to_string(static_cast<float>(temp_data.vref2[j]) / 10000) + "V").c_str());
             }
         }
 
@@ -467,6 +468,7 @@ namespace ltc6811
                     data::thrm_id thrm = 0;
                     for (const uint16_t temp : res.data)
                     {
+                        Serial.println(std::to_string(temp).c_str());
                         data::temp_data.update(ic, thrm++, utils::Bvalue(temp));
                     }
                     ic++;
@@ -485,10 +487,14 @@ namespace ltc6811
                     data::thrm_id thrm = 3;
                     for (const uint16_t temp : res.data)
                     {
-                        data::temp_data.update(ic, thrm++, utils::Bvalue(temp));
+
                         if (thrm == 5)
                         {
                             data::temp_data.vref2[ic] = temp;
+                        }
+                        else
+                        {
+                            data::temp_data.update(ic, thrm++, utils::Bvalue(temp));
                         }
                     }
                     ic++;
