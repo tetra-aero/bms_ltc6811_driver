@@ -85,8 +85,8 @@ namespace ltc6811
         {
             board::TEMP_DATA temp;
             std::array<bool, board::CHANE_LENGTH> over;
-            uint16_t battery_average;
-            uint16_t pcb_average;
+            uint32_t battery_average;
+            uint32_t pcb_average;
             std::array<int32_t, board::CHANE_LENGTH> vref2;
             std::pair<uint16_t, uint16_t> temp_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
             std::pair<ic_id, thrm_id> min_id{0xFF, 0xFF};
@@ -155,14 +155,14 @@ namespace ltc6811
 
         void dbg()
         {
-            Serial.println(("# ltc6811: Temp: Min : " + std::to_string(temp_data.temp_range.first)).c_str());
-            Serial.println(("# ltc6811: Temp: Max : " + std::to_string(temp_data.temp_range.second)).c_str());
-            Serial.println(("# ltc6811: Temp: pcbAverage : " + std::to_string(temp_data.pcb_average)).c_str());
-            Serial.println(("# ltc6811: Temp: battAverage : " + std::to_string(temp_data.battery_average)).c_str());
-            Serial.println(("# ltc6811: Vol: Min : " + std::to_string(cell_data.vol_range.first)).c_str());
-            Serial.println(("# ltc6811: Vol: Max : " + std::to_string(cell_data.vol_range.second)).c_str());
-            Serial.println(("# ltc6811: Vol: Ave : " + std::to_string(cell_data.average)).c_str());
-            Serial.println(("# ltc6811: Vol: Sum : " + std::to_string(cell_data.average)).c_str());
+            Serial.println(("# ltc6811: Temp: Min : " + std::to_string(static_cast<float>(temp_data.temp_range.first) / 1000)).c_str());
+            Serial.println(("# ltc6811: Temp: Max : " + std::to_string(static_cast<float>(temp_data.temp_range.second) / 1000)).c_str());
+            Serial.println(("# ltc6811: Temp: pcbAverage : " + std::to_string(static_cast<float>(temp_data.pcb_average) / 1000)).c_str());
+            Serial.println(("# ltc6811: Temp: battAverage : " + std::to_string(static_cast<float>(temp_data.battery_average) / 1000)).c_str());
+            Serial.println(("# ltc6811: Vol: Min : " + std::to_string(static_cast<float>(cell_data.vol_range.first) / 10000)).c_str());
+            Serial.println(("# ltc6811: Vol: Max : " + std::to_string(static_cast<float>(cell_data.vol_range.second) / 10000)).c_str());
+            Serial.println(("# ltc6811: Vol: Ave : " + std::to_string(static_cast<float>(cell_data.average) / 10000)).c_str());
+            Serial.println(("# ltc6811: Vol: Sum : " + std::to_string(static_cast<float>(cell_data.sum) / 10000)).c_str());
             for (size_t j = 0; j < board::CHANE_LENGTH; j++)
             {
                 Serial.print(("# ltc6811: DisCharge : IC" + std::to_string(j) + " Cell :").c_str());
@@ -186,16 +186,16 @@ namespace ltc6811
                 Serial.print(("# ltc6811: Cell Vol: IC" + std::to_string(j) + " Cell :").c_str());
                 for (size_t i = 0; i < board::CELL_NUM_PER_IC; i++)
                 {
-                    Serial.print((std::to_string(i) + "-" + std::to_string(cell_data.vol[j][i] / 10000) + "V ").c_str());
+                    Serial.print((std::to_string(i) + "-" + std::to_string(static_cast<float>(cell_data.vol[j][i]) / 10000) + "V ").c_str());
                 }
                 Serial.println();
             }
             for (size_t j = 0; j < board::CHANE_LENGTH; j++)
             {
                 Serial.print(("# ltc6811: Temp: IC" + std::to_string(j) + " Thurmista :").c_str());
-                for (size_t i = 0; i < board::CELL_NUM_PER_IC; i++)
+                for (size_t i = 0; i < board::THURMISTA_NUM_PER_IC; i++)
                 {
-                    Serial.print((std::to_string(i) + "-" + std::to_string(temp_data.temp[j][i] / 10000) + "deg").c_str());
+                    Serial.print((std::to_string(i) + "-" + std::to_string(static_cast<float>(temp_data.temp[j][i]) / 1000) + "deg ").c_str());
                 }
                 Serial.println();
             }
@@ -228,7 +228,7 @@ namespace ltc6811
         {
             uint16_t res = 0x10;
             uint16_t idx = 0x00;
-            uint8_t const *data = reinterpret_cast<uint8_t const *>(arr.data());
+            auto data = reinterpret_cast<uint8_t const *>(arr.data());
 
             for (size_t i = 0; i < size; ++i)
             {
@@ -314,7 +314,8 @@ namespace ltc6811
             {
                 for (Response<T> &x : data)
                 {
-                    if (x.CRC != utils::CRC(x.data))
+                    uint16_t crc = ((x.CRC & 0xFF00) >> 8) | ((x.CRC & 0x00FF) << 8);
+                    if (crc != utils::CRC(x.data))
                         return false;
                 }
                 return true;
@@ -388,14 +389,13 @@ namespace ltc6811
             void parse(Responses<uint16_t> &data)
             {
                 data::ic_id ic{};
-
+                data::cell_data.sum = 0;
                 for (const Response<uint16_t> &res : data.data)
                 {
                     data::cell_id cell = 0;
                     for (const uint16_t vol : res.data)
                     {
-                        data::cell_data.update(ic, cell, vol);
-                        cell++;
+                        data::cell_data.update(ic, cell++, vol);
                     }
                     ic++;
                 }
@@ -413,8 +413,7 @@ namespace ltc6811
                     data::cell_id cell = 3;
                     for (const uint16_t vol : res.data)
                     {
-                        data::cell_data.update(ic, cell, vol);
-                        cell++;
+                        data::cell_data.update(ic, cell++, vol);
                     }
                     ic++;
                 }
@@ -432,8 +431,7 @@ namespace ltc6811
                     data::cell_id cell = 6;
                     for (const uint16_t vol : res.data)
                     {
-                        data::cell_data.update(ic, cell, vol);
-                        cell++;
+                        data::cell_data.update(ic, cell++, vol);
                     }
                     ic++;
                 }
@@ -451,8 +449,7 @@ namespace ltc6811
                     data::cell_id cell = 9;
                     for (const uint16_t vol : res.data)
                     {
-                        data::cell_data.update(ic, cell, vol);
-                        cell++;
+                        data::cell_data.update(ic, cell++, vol);
                     }
                     ic++;
                 }
@@ -467,10 +464,10 @@ namespace ltc6811
 
                 for (const Response<uint16_t> &res : data.data)
                 {
-                    data::cell_id cell = 0;
+                    data::thrm_id thrm = 0;
                     for (const uint16_t temp : res.data)
                     {
-                        data::temp_data.update(ic, cell, utils::Bvalue(temp));
+                        data::temp_data.update(ic, thrm++, utils::Bvalue(temp));
                     }
                     ic++;
                 }
@@ -488,7 +485,7 @@ namespace ltc6811
                     data::thrm_id thrm = 3;
                     for (const uint16_t temp : res.data)
                     {
-                        data::temp_data.update(ic, thrm, utils::Bvalue(temp));
+                        data::temp_data.update(ic, thrm++, utils::Bvalue(temp));
                         if (thrm == 5)
                         {
                             data::temp_data.vref2[ic] = temp;
@@ -543,6 +540,7 @@ namespace ltc6811
         {
             COMMANDCRC cmd;
             Responses<T> res;
+            C parser;
             constexpr ReadRequest(COMMANDCRC &&arr) : cmd(std::move(arr))
             {
             }
@@ -555,10 +553,7 @@ namespace ltc6811
                 for (size_t i = 0; i < board::CHANE_LENGTH * board::REGISTER_BYTES; i++)
                 {
                     buffer[i] = spi.transfer(0xFF);
-                    Serial.print(std::to_string(buffer[i]).c_str());
-                    Serial.print(" ");
                 }
-                Serial.println("");
                 digitalWrite(gpio, HIGH);
                 if (!res.check_crc())
                     return std::nullopt;
@@ -566,7 +561,7 @@ namespace ltc6811
             }
             void parse()
             {
-                C{}.parse(res);
+                parser.parse(res);
             }
         };
 
@@ -575,6 +570,7 @@ namespace ltc6811
         {
             COMMANDCRC cmd;
             Responses<T> message;
+            C setter;
 
             constexpr WriteRequest(COMMANDCRC &&arr) : cmd(std::move(arr))
             {
@@ -586,7 +582,7 @@ namespace ltc6811
                 digitalWrite(gpio, LOW);
                 spi.writeBytes(cmd.data(), sizeof(cmd));
                 std::array<uint8_t, 8 * board::CHANE_LENGTH> packet;
-                uint8_t index{};
+                size_t index{};
                 for (const Response<T> &board : message.data)
                 {
                     for (auto x : board.data)
@@ -604,7 +600,7 @@ namespace ltc6811
             template <class D>
             void set(D &data)
             {
-                C{}.set(message, data);
+                setter.set(message, data);
             }
         };
 
@@ -788,7 +784,8 @@ namespace ltc6811
             template <class C>
             void discharge()
             {
-                data::Config config = C{}.update_dcc(100);
+                C method;
+                data::Config config = method.update_dcc(100);
                 set_config(config);
                 delayMicroseconds(500);
                 get_config();

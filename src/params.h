@@ -16,8 +16,8 @@ namespace board
     static constexpr uint32_t WAKEUP_DELAY = 400;
     static constexpr uint32_t B_VALUE = 4550;
     static constexpr uint32_t THRMISTA_VOLTAGE = 30000.0;
-    static constexpr std::initializer_list<uint8_t> PCB_THRMISTA_ID = {1, 2, 3, 4};
-    static constexpr std::initializer_list<uint8_t> BATTERY_THRMISTA_ID = {5};
+    static constexpr std::initializer_list<uint8_t> PCB_THRMISTA_ID = {0, 1, 2, 3};
+    static constexpr std::initializer_list<uint8_t> BATTERY_THRMISTA_ID = {4};
     static constexpr std::array<uint8_t, 4> HOST_IP_ADDRESS = {192, 168, 3, 11};
     static constexpr std::array<uint8_t, 4> DEVICE_IP_ADDRESS = {192, 168, 3, 14};
     static constexpr std::array<uint8_t, 4> GATEWAY_ADDRESS = {192, 168, 3, 1};
