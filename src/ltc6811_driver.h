@@ -48,7 +48,8 @@ namespace ltc6811
         static constexpr Mode DETECTION_MODE = Mode::Normal;
 
         static constexpr float TEMP_LIMIT = 50.0;
-        static constexpr uint32_t VOL_DIF_LIMIT = 50;
+        static constexpr uint32_t VOL_DIF_TOL_LIMIT = 50;
+        static constexpr uint32_t VOL_DIF_ABS_LIMIT = 20;
 
         static constexpr uint32_t REGISTER_BYTES = 8;
         static constexpr uint32_t WAKEUP_DELAY = 400;
@@ -787,12 +788,68 @@ namespace ltc6811
 
         namespace discharge
         {
+            enum class DeltaLine : uint8_t
+            {
+                TOL_LINE,
+                ABS_LINE,
+            };
+            std::array<uint32_t, board::CHANE_LENGTH> voltage_delta;
+            std::array<DeltaLine, board::CHANE_LENGTH> state{DeltaLine::TOL_LINE};
+
+            void update_delta()
+            {
+                for (size_t ic{}; ic < state.size(); ic++)
+                {
+                    switch (state[ic])
+                    {
+                    case DeltaLine::TOL_LINE:
+                        voltage_delta[ic] = param::VOL_DIF_TOL_LIMIT;
+                        break;
+                    case DeltaLine::ABS_LINE:
+                        voltage_delta[ic] = param::VOL_DIF_ABS_LIMIT;
+                        break;
+                    }
+                }
+            }
+
+            void update_state(data::Config &data)
+            {
+                for (size_t ic{}; ic < state.size(); ic++)
+                {
+                    switch (state[ic])
+                    {
+                    case DeltaLine::TOL_LINE:
+                        for (size_t i{}; i < data.data[ic].size(); i++)
+                        {
+                            if (data.data[ic][i])
+                            {
+                                state[ic] = DeltaLine::ABS_LINE;
+                                break;
+                            }
+                        }
+                        break;
+                    case DeltaLine::ABS_LINE:
+                        state[ic] = DeltaLine::TOL_LINE;
+                        for (size_t i{}; i < data.data[ic].size(); i++)
+                        {
+                            if (data.data[ic][i])
+                            {
+                                state[ic] = DeltaLine::ABS_LINE;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
             struct Method_Min
             {
-                data::Config update_dcc(uint32_t delta)
+                data::Config update_dcc()
                 {
                     data::Config config;
                     data::ic_id ic = board::CHANE_LENGTH - 1;
+                    update_delta();
                     for (auto &board : config.data)
                     {
                         if (data::temp_data.over[ic])
@@ -801,22 +858,24 @@ namespace ltc6811
                             continue;
                         }
                         for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
-                            if (data::cell_data.vol[ic][cell] > data::cell_data.vol_range.first + delta)
+                            if (data::cell_data.vol[ic][cell] > data::cell_data.vol_range.first + voltage_delta[ic])
                                 board[cell] = true;
                             else
                                 board[cell] = false;
                         ic--;
                     }
+                    update_state(config);
                     return config;
                 }
             };
 
             struct Method_Mean
             {
-                data::Config update_dcc(uint32_t delta)
+                data::Config update_dcc()
                 {
                     data::Config config;
                     data::ic_id ic = board::CHANE_LENGTH - 1;
+                    update_delta();
                     for (auto &board : data::config.data)
                     {
                         if (data::temp_data.over[ic])
@@ -825,12 +884,13 @@ namespace ltc6811
                             continue;
                         }
                         for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
-                            if (data::cell_data.vol[ic][cell] > data::cell_data.average + delta)
+                            if (data::cell_data.vol[ic][cell] > data::cell_data.average + voltage_delta[ic])
                                 board[cell] = true;
                             else
                                 board[cell] = false;
                         ic--;
                     }
+                    update_state(config);
                     return config;
                 }
             };
@@ -839,7 +899,7 @@ namespace ltc6811
             void loop()
             {
                 C method;
-                data::Config config = method.update_dcc(param::VOL_DIF_LIMIT);
+                data::Config config = method.update_dcc();
                 set_config(config);
                 delayMicroseconds(500);
                 get_config();
