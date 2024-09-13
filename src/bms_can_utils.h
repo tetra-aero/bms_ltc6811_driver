@@ -80,12 +80,12 @@ namespace can
                 transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL, board::CAN_ID), data);
             }
             {
-                std::array<uint16_t, 4>
+                std::array<int16_t, 4>
                     data = {
-                        temp_data.battery_average,
-                        temp_data.temp_range.first,
-                        temp_data.pcb_average,
-                        temp_data.temp_range.second};
+                        temp_data.battery_average / 1000,
+                        temp_data.temp_range.first / 1000,
+                        temp_data.pcb_average / 1000,
+                        temp_data.temp_range.second / 1000};
                 transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
             }
             if (request)
@@ -93,11 +93,11 @@ namespace can
                 std::array<uint16_t, 4> data;
                 for (size_t i = 0; i < ltc6811::data::cell_data.vol.size(); i++)
                 {
-                    data = {create_cell_segment(i, 0, ltc6811::data::cell_data.vol[i][0]), create_cell_segment(i, 1, ltc6811::data::cell_data.vol[i][1]), create_cell_segment(i, 2, ltc6811::data::cell_data.vol[i][2]), create_cell_segment(i, 3, ltc6811::data::cell_data.vol[i][3])};
+                    data = {create_cell_segment(i, 0, ltc6811::data::cell_data.vol[i][0] / 100), create_cell_segment(i, 1, ltc6811::data::cell_data.vol[i][1] / 100), create_cell_segment(i, 2, ltc6811::data::cell_data.vol[i][2] / 100), create_cell_segment(i, 3, ltc6811::data::cell_data.vol[i][3] / 100)};
                     transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                    data = {create_cell_segment(i, 4, ltc6811::data::cell_data.vol[i][4]), create_cell_segment(i, 5, ltc6811::data::cell_data.vol[i][5]), create_cell_segment(i, 6, ltc6811::data::cell_data.vol[i][6]), create_cell_segment(i, 7, ltc6811::data::cell_data.vol[i][7])};
+                    data = {create_cell_segment(i, 4, ltc6811::data::cell_data.vol[i][4] / 100), create_cell_segment(i, 5, ltc6811::data::cell_data.vol[i][5] / 100), create_cell_segment(i, 6, ltc6811::data::cell_data.vol[i][6] / 100), create_cell_segment(i, 7, ltc6811::data::cell_data.vol[i][7] / 100)};
                     transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                    data = {create_cell_segment(i, 8, ltc6811::data::cell_data.vol[i][8]), create_cell_segment(i, 9, ltc6811::data::cell_data.vol[i][9]), create_cell_segment(i, 10, ltc6811::data::cell_data.vol[i][10]), create_cell_segment(i, 11, ltc6811::data::cell_data.vol[i][11])};
+                    data = {create_cell_segment(i, 8, ltc6811::data::cell_data.vol[i][8] / 100), create_cell_segment(i, 9, ltc6811::data::cell_data.vol[i][9] / 100), create_cell_segment(i, 10, ltc6811::data::cell_data.vol[i][10] / 100), create_cell_segment(i, 11, ltc6811::data::cell_data.vol[i][11] / 100)};
                     transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
                 }
                 request = false;

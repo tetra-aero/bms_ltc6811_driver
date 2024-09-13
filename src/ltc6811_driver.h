@@ -1,5 +1,4 @@
 #pragma once
-#include "Arduino.h"
 #include "params.h"
 #include "SPI.h"
 #include <array>
@@ -44,6 +43,19 @@ namespace ltc6811
         };
         constexpr uint32_t T_REF_MAX = 4400;
         constexpr uint32_t T_CYCLE_FAST_MAX = 1185;
+        static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Disable;
+        static constexpr Duty DUTY_RATIO = Duty::Ratio_12_16;
+        static constexpr Mode DETECTION_MODE = Mode::Normal;
+
+        static constexpr float TEMP_LIMIT = 50.0;
+        static constexpr uint32_t VOL_DIF_LIMIT = 50;
+
+        static constexpr uint32_t REGISTER_BYTES = 8;
+        static constexpr uint32_t WAKEUP_DELAY = 400;
+        static constexpr uint32_t B_VALUE = 4550;
+        static constexpr uint32_t THRMISTA_VOLTAGE = 30000.0;
+        static constexpr std::initializer_list<uint8_t> PCB_THRMISTA_ID = {0, 1, 2, 3};
+        static constexpr std::initializer_list<uint8_t> BATTERY_THRMISTA_ID = {4};
     };
 
     namespace data
@@ -95,6 +107,14 @@ namespace ltc6811
             void update(ic_id ic, thrm_id cell, int32_t celsius)
             {
                 temp[ic][cell] = celsius;
+                if (celsius > param::TEMP_LIMIT)
+                {
+                    over[ic] = true;
+                }
+                else
+                {
+                    over[ic] = false;
+                }
                 if (temp_range.first > celsius)
                 {
                     temp_range.first = celsius;
@@ -113,21 +133,21 @@ namespace ltc6811
                 battery_average = 0;
                 for (auto &x : temp)
                 {
-                    for (const auto index : board::PCB_THRMISTA_ID)
+                    for (const auto index : param::PCB_THRMISTA_ID)
                     {
                         pcb_average += x[index];
                     }
                 }
 
-                for (const auto index : board::BATTERY_THRMISTA_ID)
+                for (const auto index : param::BATTERY_THRMISTA_ID)
                 {
                     for (auto &x : temp)
                     {
                         battery_average += x[index];
                     }
                 }
-                pcb_average /= (board::CHANE_LENGTH * board::PCB_THRMISTA_ID.size());
-                battery_average /= (board::CHANE_LENGTH * board::BATTERY_THRMISTA_ID.size());
+                pcb_average /= (board::CHANE_LENGTH * param::PCB_THRMISTA_ID.size());
+                battery_average /= (board::CHANE_LENGTH * param::BATTERY_THRMISTA_ID.size());
             }
         } temp_data;
 
@@ -255,7 +275,7 @@ namespace ltc6811
             for (size_t i = 0; i < board::CHANE_LENGTH; ++i)
             {
                 digitalWrite(gpio, LOW);
-                delayMicroseconds(board::WAKEUP_DELAY);
+                delayMicroseconds(param::WAKEUP_DELAY);
                 digitalWrite(gpio, HIGH);
                 delayMicroseconds(10);
             }
@@ -263,8 +283,8 @@ namespace ltc6811
 
         int32_t Bvalue(uint16_t NTC_voltage)
         {
-            double R = NTC_voltage / (board::THRMISTA_VOLTAGE - NTC_voltage);
-            double TempInv = ((1 / (273.15 + 25)) + (std::log(R) / board::B_VALUE));
+            double R = NTC_voltage / (param::THRMISTA_VOLTAGE - NTC_voltage);
+            double TempInv = ((1 / (273.15 + 25)) + (std::log(R) / param::B_VALUE));
             return static_cast<int32_t>(((1 / TempInv) * 1000 - 273150));
         }
 
@@ -277,9 +297,9 @@ namespace ltc6811
         template <typename T>
         using RESPONSE = std::array<T, 6 / sizeof(T)>;
         constexpr COMMAND MODE_BITS = {
-            (static_cast<uint8_t>(param::Mode::Normal) & 0b10) >> 1,
-            (static_cast<uint8_t>(param::Mode::Normal) & 0b01) << 7};
-        constexpr COMMAND START_CONV_CV = {0x02 | MODE_BITS[0], MODE_BITS[1] | 0x60 | (static_cast<uint8_t>(param::Dcp::Enable) << 4)};
+            (static_cast<uint8_t>(param::DETECTION_MODE) & 0b10) >> 1,
+            (static_cast<uint8_t>(param::DETECTION_MODE) & 0b01) << 7};
+        constexpr COMMAND START_CONV_CV = {0x02 | MODE_BITS[0], MODE_BITS[1] | 0x60 | (static_cast<uint8_t>(param::DISCHARGE_PERMISSION) << 4)};
         constexpr COMMAND START_CONV_AX = {0x04 | MODE_BITS[0], MODE_BITS[1] | 0x60};
         constexpr COMMAND START_CONV_STAT = {0x04 | MODE_BITS[0], MODE_BITS[1] | 0x68};
         constexpr COMMAND WRITE_CONFIG_A = {0x00, 0x01};
@@ -303,7 +323,7 @@ namespace ltc6811
         template <typename T>
         struct Response
         {
-            std::array<T, (board::REGISTER_BYTES - sizeof(uint16_t)) / sizeof(T)> data;
+            std::array<T, (param::REGISTER_BYTES - sizeof(uint16_t)) / sizeof(T)> data;
             uint16_t CRC;
         };
 
@@ -556,7 +576,7 @@ namespace ltc6811
                 utils::wakeup_port(spi, gpio);
                 digitalWrite(gpio, LOW);
                 spi.writeBytes(cmd.data(), sizeof(cmd));
-                for (size_t i = 0; i < board::CHANE_LENGTH * board::REGISTER_BYTES; i++)
+                for (size_t i = 0; i < board::CHANE_LENGTH * param::REGISTER_BYTES; i++)
                 {
                     buffer[i] = spi.transfer(0xFF);
                 }
@@ -788,10 +808,10 @@ namespace ltc6811
             };
 
             template <class C>
-            void discharge()
+            void loop()
             {
                 C method;
-                data::Config config = method.update_dcc(100);
+                data::Config config = method.update_dcc(param::VOL_DIF_LIMIT);
                 set_config(config);
                 delayMicroseconds(500);
                 get_config();
@@ -805,23 +825,16 @@ namespace ltc6811
             pinMode(SS, OUTPUT);
             pinMode(MISO, INPUT);
             utils::wakeup(SPI, SS);
+            set_duty(param::DUTY_RATIO);
         }
 
         void loop()
         {
-            if (get_cell().has_value())
+            if (get_cell().has_value() && get_temp().has_value() && get_status().has_value())
             {
                 Serial.println("OK");
+                discharge::loop<discharge::Method_Min>();
             }
-            if (get_temp().has_value())
-            {
-                Serial.println("OK");
-            }
-            if (get_status().has_value())
-            {
-                Serial.println("OK");
-            }
-            // discharge::discharge<discharge::Method_Min>();
         }
     };
 };
