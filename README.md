@@ -33,8 +33,8 @@ void loop() {
 ![](./canprotocol_preview.svg)
 
 
-## Various parameter adjustments ```src/params.h```
-
+## Various parameter adjustments 
+```src/params.h```
 | Variables         | Meaning                                          |
 | ----------------- | ------------------------------------------------ |
 | CAN_ID            | Board-specific CANID                             |
@@ -46,6 +46,16 @@ void loop() {
 | SUBNET_MASK       | subnet mask                                      |
 | SSID              | wifi ssid                                        |
 | PASSWORD          | wifi password                                    |
+```src/bms_ltc6811_driver.h namespace ltc6811::param```
+| Variables         | Meaning                                          |
+|DISCHARGE_PERMISSION|Discharge Permission Settings Dcp::Enable or Dcp::Disable|
+|DUTY_RATIO| Discharge Transistor Drive Duty Ratio |
+|TEMP_LIMIT| PCB Temperature Limit (Discharge stops when the limit is exceeded)|
+|VOL_DIF_TOL_LIMIT|Allowable Voltage Difference When Discharge State is TOL_LINE|
+|VOL_DIF_TOL_LIMIT|Allowable Voltage Difference When Discharge State is TOL_LINE|
+|VOL_DIF_ABS_LIMIT|Allowable Voltage Difference When Discharge State is ABS_LINE|
+| BATTERY_THRMISTA_ID|ltc6811 thrmista voltage register index for BATTERY temperature|
+| PCB_THRMISTA_ID|ltc6811 thrmista voltage register index for PCB temperature|
 
 ## CAN Driver ```src/bms_can_utils.h```
 
@@ -81,6 +91,7 @@ namespace driver {
 
 ## UDP Driver ```src/bms_udp_utils.h```
 ```c++
+namespace driver {
 /**
  * @brief Sets up the WiFi and UDP communication.
  * 
@@ -105,10 +116,43 @@ void setup() {}
  */
 bool report(uint32_t voltage, uint32_t current, ltc6811::data::CellVoltage &cell_data, ltc6811::data::Temperature &temp_data)
 {}
+}
 
 ```
 
 ## BMS(LTC6811) Driver ```src/bms_ltc6811_driver.h```
+
+
+```c++
+namespace data {
+/**
+ * @brief Prints debug information for the LTC6811 data.
+ * 
+ * This function outputs various temperature and voltage data, as well as discharge status and PWM ratios,
+ * to the serial monitor for debugging purposes.
+ */
+void dbg() {}
+}
+
+namespace driver {
+/**
+ * @brief Sets up the SPI communication and initializes the LTC6811 driver.
+ * 
+ * This function initializes the SPI bus, sets the SPI settings, configures the necessary pins,
+ * wakes up the LTC6811 device, and sets the duty ratio. If setting the duty ratio fails, it prints an error message.
+ */
+void setup() {}
+
+/**
+ * @brief Main loop function for the BMS (Battery Management System).
+ * 
+ * This function continuously checks if cell voltage, temperature, and status data are available.
+ * If all data are available, it calls the discharge loop method with the `Method_Min` strategy. you can change discharge method from template parametor
+ */
+void loop() {}
+}
+
+```
 
 ## BMS(ISL28022) Driver ```src/bms_isl28022_driver.h```
 

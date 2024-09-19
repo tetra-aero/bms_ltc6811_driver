@@ -924,7 +924,6 @@ namespace ltc6811
         {
             if (get_cell().has_value() && get_temp().has_value() && get_status().has_value())
             {
-                Serial.println("OK");
                 discharge::loop<discharge::Method_Min>();
             }
         }
