@@ -46,16 +46,19 @@ void loop() {
 | SUBNET_MASK       | subnet mask                                      |
 | SSID              | wifi ssid                                        |
 | PASSWORD          | wifi password                                    |
+
 ```src/bms_ltc6811_driver.h namespace ltc6811::param```
-| Variables         | Meaning                                          |
-|DISCHARGE_PERMISSION|Discharge Permission Settings Dcp::Enable or Dcp::Disable|
-|DUTY_RATIO| Discharge Transistor Drive Duty Ratio |
-|TEMP_LIMIT| PCB Temperature Limit (Discharge stops when the limit is exceeded)|
-|VOL_DIF_TOL_LIMIT|Allowable Voltage Difference When Discharge State is TOL_LINE|
-|VOL_DIF_TOL_LIMIT|Allowable Voltage Difference When Discharge State is TOL_LINE|
-|VOL_DIF_ABS_LIMIT|Allowable Voltage Difference When Discharge State is ABS_LINE|
-| BATTERY_THRMISTA_ID|ltc6811 thrmista voltage register index for BATTERY temperature|
-| PCB_THRMISTA_ID|ltc6811 thrmista voltage register index for PCB temperature|
+
+| Variables            | Meaning                                                            |
+| -------------------- | ------------------------------------------------------------------ |
+| DISCHARGE_PERMISSION | Discharge Permission Settings Dcp::Enable or Dcp::Disable          |
+| DUTY_RATIO           | Discharge Transistor Drive Duty Ratio                              |
+| TEMP_LIMIT           | PCB Temperature Limit (Discharge stops when the limit is exceeded) |
+| VOL_DIF_TOL_LIMIT    | Allowable Voltage Difference When Discharge State is TOL_LINE      |
+| VOL_DIF_TOL_LIMIT    | Allowable Voltage Difference When Discharge State is TOL_LINE      |
+| VOL_DIF_ABS_LIMIT    | Allowable Voltage Difference When Discharge State is ABS_LINE      |
+| BATTERY_THRMISTA_ID  | ltc6811 thrmista voltage register index for BATTERY temperature    |
+| PCB_THRMISTA_ID      | ltc6811 thrmista voltage register index for PCB temperature        |
 
 ## CAN Driver ```src/bms_can_utils.h```
 
