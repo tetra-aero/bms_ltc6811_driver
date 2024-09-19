@@ -1,8 +1,8 @@
 #pragma once
 #include <array>
 #include <CAN.h>
-#include "params.h"
-#include "ltc6811_driver.h"
+#include "bms_params.h"
+#include "bms_ltc6811_driver.h"
 
 namespace can
 {

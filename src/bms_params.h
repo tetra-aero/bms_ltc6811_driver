@@ -7,9 +7,9 @@ namespace board
 {
     static constexpr uint32_t CAN_ID = 0x01;
     static constexpr uint32_t CHANE_LENGTH = 1;
+    static constexpr uint32_t CAN_BITRATE = 125000;
     static constexpr uint32_t CAN_RX_PIN = 34;
     static constexpr uint32_t CAN_TX_PIN = 32;
-    static constexpr uint32_t CAN_BITRATE = 125000;
 
     static constexpr std::array<uint8_t, 4> HOST_IP_ADDRESS = {192, 168, 3, 11};
     static constexpr std::array<uint8_t, 4> DEVICE_IP_ADDRESS = {192, 168, 3, 14};

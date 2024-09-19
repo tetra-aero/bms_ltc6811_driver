@@ -1,5 +1,5 @@
 #pragma once
-#include "params.h"
+#include "bms_params.h"
 #include "SPI.h"
 #include <array>
 #include <algorithm>
