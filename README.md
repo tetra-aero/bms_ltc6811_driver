@@ -157,6 +157,67 @@ void loop() {}
 
 ```
 
+## BMS(LTC6811) Discharge Method ```src/bms_ltc6811_driver.h``` namespace driver::discharge
+
+
+```c++
+/**
+     * @brief Enum representing the discharge state.
+     */
+    enum class DeltaLine : uint8_t
+    {
+        TOL_LINE,  ///< Tolerance line state
+        ABS_LINE,  ///< Absolute line state
+    };
+    /**
+     * @brief Updates the voltage delta based on the current state.
+     */
+    void update_delta(){}
+
+    /**
+     * @brief Updates the state based on the configuration data.
+     * 
+     * @param data The configuration data.
+     */
+    void update_state(data::Config &data){}
+
+    /**
+     * @brief Method for updating discharge control configuration using minimum voltage.
+     */
+    struct Method_Min
+    {
+        /**
+         * @brief Updates the discharge control configuration.
+         * 
+         * @return The updated configuration.
+         */
+        data::Config update_dcc(){}
+    };
+
+    /**
+     * @brief Method for updating discharge control configuration using mean voltage.
+     */
+    struct Method_Mean
+    {
+        /**
+         * @brief Updates the discharge control configuration.
+         * 
+         * @return The updated configuration.
+         */
+        data::Config update_dcc(){}
+    };
+
+    /**
+     * @brief Main loop function for discharge control.
+     * 
+     * @tparam C The method class to use for updating the discharge control configuration.
+     */
+    template <class C>
+    void loop() {}
+```
+
+
+
 ## BMS(ISL28022) Driver ```src/bms_isl28022_driver.h```
 
 
