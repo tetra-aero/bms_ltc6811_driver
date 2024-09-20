@@ -215,10 +215,10 @@ namespace isl28022
 {
     namespace data
     {
-        float current;
-        float power;
-        float bus_voltage;
-        float shunt_voltage;
+        float current = 0.0f;
+        float power = 0.0f;
+        float bus_voltage = 0.0f;
+        float shunt_voltage = 0.0f;
 
         void dbg()
         {

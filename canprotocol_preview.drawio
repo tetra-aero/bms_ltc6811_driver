@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram name="ページ1" id="5iqo3vTNiSGjk-yixdEq">
-        <mxGraphModel dx="1978" dy="884" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1501" dy="884" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -19,7 +19,7 @@
                 <mxCell id="oU1_fxm8376zEesIFjcv-7" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="160" y="240" width="640" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="oU1_fxm8376zEesIFjcv-8" value="0x1E00 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="oU1_fxm8376zEesIFjcv-8" value="0x4000 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="-160" y="240" width="320" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="oU1_fxm8376zEesIFjcv-9" value="8&lt;span style=&quot;background-color: initial;&quot;&gt;byte&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
@@ -40,7 +40,7 @@
                 <mxCell id="oU1_fxm8376zEesIFjcv-14" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="160" y="320" width="640" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="oU1_fxm8376zEesIFjcv-15" value="0x1F00 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="oU1_fxm8376zEesIFjcv-15" value="0x4100 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="-160" y="320" width="320" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="oU1_fxm8376zEesIFjcv-16" value="Cell Max/Min Voltage" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
@@ -55,7 +55,7 @@
                 <mxCell id="oU1_fxm8376zEesIFjcv-19" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="160" y="600" width="640" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="oU1_fxm8376zEesIFjcv-20" value="0x2100 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="oU1_fxm8376zEesIFjcv-20" value="0x4300 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="-160" y="600" width="320" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="oU1_fxm8376zEesIFjcv-21" value="Max/Min/AveTemp" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
@@ -79,7 +79,7 @@
                 <mxCell id="oU1_fxm8376zEesIFjcv-28" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="160" y="400" width="640" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="oU1_fxm8376zEesIFjcv-29" value="0x2000 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="oU1_fxm8376zEesIFjcv-29" value="0x4200 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="-160" y="400" width="320" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="oU1_fxm8376zEesIFjcv-30" value="SoC/Duty/" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
@@ -148,7 +148,7 @@
                 <mxCell id="3beT_dmG7uhByHbc7Ueh-1" value="" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="160" y="680" width="640" height="40" as="geometry"/>
                 </mxCell>
-                <mxCell id="3beT_dmG7uhByHbc7Ueh-2" value="0x2400 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="3beT_dmG7uhByHbc7Ueh-2" value="0x4400 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="-160" y="680" width="320" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="3beT_dmG7uhByHbc7Ueh-3" value="Each Cell Voltage" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
@@ -211,7 +211,7 @@
                 <mxCell id="3beT_dmG7uhByHbc7Ueh-24" value="Requsest Each Cell Voltage" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
                     <mxGeometry x="-310" y="950" width="130" height="60" as="geometry"/>
                 </mxCell>
-                <mxCell id="3beT_dmG7uhByHbc7Ueh-25" value="0x2500 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                <mxCell id="3beT_dmG7uhByHbc7Ueh-25" value="0x4500 + board_id" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
                     <mxGeometry x="-160" y="960" width="320" height="40" as="geometry"/>
                 </mxCell>
                 <mxCell id="3beT_dmG7uhByHbc7Ueh-26" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;このメッセージがcell数分送られてくる&lt;/h1&gt;" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" parent="1" vertex="1">
