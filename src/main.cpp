@@ -6,7 +6,7 @@
 void setup()
 {
 
-  Serial.begin(115200);
+  Serial.begin(board::UART_BITRATE);
   can::driver::setup();
   // udp::driver::setup();
   ltc6811::driver::setup();

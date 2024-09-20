@@ -284,8 +284,17 @@ namespace ltc6811
                 res = res << 8 ^ lookup[idx];
             }
             res = res << 1;
-            uint16_t ret = ((res & 0xFF00) >> 8 | (res & 0x00FF) << 8);
-            return ret;
+            return res;
+        }
+
+        constexpr std::array<uint8_t, 2> endian8(uint16_t crc)
+        {
+            return {static_cast<uint8_t>((crc >> 8) & 0xFF), static_cast<uint8_t>(crc & 0xFF)};
+        }
+
+        constexpr uint16_t endian16(uint16_t crc)
+        {
+            return ((crc >> 8) & 0x00FF) | ((crc << 8) & 0xFF00);
         }
 
         void wakeup_port(SPIClass &spi, uint8_t gpio)
@@ -345,7 +354,7 @@ namespace ltc6811
 
         constexpr COMMANDCRC create_command_crc(COMMAND command)
         {
-            return {command[0], command[1], static_cast<uint8_t>(utils::CRC(command, 2)), static_cast<uint8_t>(utils::CRC(command, 2) >> 8)};
+            return {command[0], command[1], utils::endian8(utils::CRC(command, 2))[0], utils::endian8(utils::CRC(command, 2))[1]};
         }
 
         template <typename T>
@@ -363,7 +372,7 @@ namespace ltc6811
             {
                 for (Response<T> &x : data)
                 {
-                    if (x.CRC != utils::CRC(x.data))
+                    if (utils::endian16(x.CRC) != utils::CRC(x.data))
                         return false;
                 }
                 return true;
@@ -395,7 +404,7 @@ namespace ltc6811
                 {
                     uint8_t pwm_reg_val = static_cast<uint8_t>((data.data[ic][1]) << 4 | data.data[ic][0]);
                     message.data = {pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val};
-                    message.CRC = utils::CRC(message.data);
+                    message.CRC = utils::endian16(utils::CRC(message.data));
                     ic--;
                 }
             }
@@ -582,7 +591,7 @@ namespace ltc6811
                     message.data[0] = 0xFC;
                     message.data[4] = create_bitmask(dcc.data[ic], 0, 7);
                     message.data[5] = create_bitmask(dcc.data[ic], 8, 11);
-                    message.CRC = utils::CRC(message.data);
+                    message.CRC = utils::endian16(utils::CRC(message.data));
                 }
             }
         };
@@ -633,18 +642,8 @@ namespace ltc6811
                 utils::wakeup_port(spi, gpio);
                 digitalWrite(gpio, LOW);
                 spi.writeBytes(cmd.data(), sizeof(cmd));
-                std::array<uint8_t, 8 * board::CHANE_LENGTH> packet;
-                size_t index{};
-                for (const Response<T> &board : message.data)
-                {
-                    for (auto x : board.data)
-                    {
-                        packet[index++] = x;
-                    }
-                    packet[index++] = board.CRC & 0xFF;
-                    packet[index++] = (board.CRC >> 8) & 0xFF;
-                }
-                spi.writeBytes(packet.data(), sizeof(packet));
+                uint8_t *buffer = reinterpret_cast<uint8_t *>(message.data.data());
+                spi.writeBytes(buffer, sizeof(message.data));
                 digitalWrite(gpio, HIGH);
                 return true;
             }
@@ -770,7 +769,7 @@ namespace ltc6811
         std::optional<std::reference_wrapper<data::CellVoltage>> get_cell()
         {
             data::cell_data.clear();
-            // registers::req_start_conv_cv.request(SPI, SS);
+            registers::req_start_conv_cv.request(SPI, SS);
             auto res_a = registers::req_read_cell_a.request(SPI, SS);
             auto res_b = registers::req_read_cell_b.request(SPI, SS);
             auto res_c = registers::req_read_cell_c.request(SPI, SS);
@@ -914,8 +913,6 @@ namespace ltc6811
                 C method;
                 data::Config config = method.update_dcc();
                 set_config(config);
-                delayMicroseconds(500);
-                get_config();
             }
         };
 
@@ -935,9 +932,12 @@ namespace ltc6811
 
         void loop()
         {
-            if (get_cell().has_value() && get_temp().has_value() && get_status().has_value())
+            if (get_cell().has_value() && get_temp().has_value() && get_status().has_value() && get_duty().has_value() && get_config().has_value())
             {
-                discharge::loop<discharge::Method_Min>();
+                if (param::DISCHARGE_PERMISSION == param::Dcp::Enable)
+                {
+                    discharge::loop<discharge::Method_Min>();
+                }
             }
         }
     };

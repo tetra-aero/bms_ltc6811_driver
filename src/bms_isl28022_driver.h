@@ -92,7 +92,9 @@ private:
         {
             byte first = hi2c_.read();
             byte second = hi2c_.read();
-            return (first << 8 | second);
+            uint16_t ret = (first << 8 | second);
+            Serial.println(("# isl28022: register: " + std::to_string(ret)).c_str());
+            return ret;
         }
         else
         {
