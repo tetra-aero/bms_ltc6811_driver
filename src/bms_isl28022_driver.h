@@ -81,7 +81,7 @@ private:
         hi2c_.beginTransmission(addr_);
         hi2c_.write(reg);
         hi2c_.endTransmission();
-        hi2c_.requestFrom(addr_, 2);
+        hi2c_.requestFrom(static_cast<int>(addr_), static_cast<int>(2));
         uint32_t count{};
         while (!hi2c_.available() && count < wait)
         {
@@ -171,7 +171,7 @@ public:
         }
     }
 
-    std::optional<float> get_bus_voltage() // OK
+    std::optional<float> get_bus_voltage()
     {
         auto result = read_register(REG::BUSVOLT);
         if (result.has_value())
