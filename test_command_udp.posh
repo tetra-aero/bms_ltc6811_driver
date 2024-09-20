@@ -1,0 +1,16 @@
+
+$ipAddress = "192.168.3.14"
+$port = 12351
+
+$UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST = 0x4500  
+$CAN_ID = 0x01 
+$requestID = [bitconverter]::GetBytes([uint32]($UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST + $CAN_ID))
+
+$udpClient = New-Object System.Net.Sockets.UdpClient
+
+
+$endPoint = New-Object System.Net.IPEndPoint ([System.Net.IPAddress]::Parse($ipAddress), $port)
+
+$udpClient.Send($requestID, $requestID.Length, $endPoint)
+
+$udpClient.Close()

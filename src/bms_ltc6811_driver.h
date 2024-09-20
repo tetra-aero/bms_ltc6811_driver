@@ -43,8 +43,8 @@ namespace ltc6811
         };
         constexpr uint32_t T_REF_MAX = 4400;
         constexpr uint32_t T_CYCLE_FAST_MAX = 1185;
-        static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Disable;
-        static constexpr Duty DUTY_RATIO = Duty::Ratio_4_16;
+        static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Enable;
+        static constexpr Duty DUTY_RATIO = Duty::Ratio_1_16;
         static constexpr Mode DETECTION_MODE = Mode::Normal;
 
         static constexpr float TEMP_LIMIT = 50.0;
@@ -399,13 +399,13 @@ namespace ltc6811
 
             void set(Responses<uint8_t> &messages, data::Pwm &data)
             {
-                data::ic_id ic{board::CHANE_LENGTH - 1};
+                data::ic_id ic{0};
                 for (auto &message : messages.data)
                 {
                     uint8_t pwm_reg_val = static_cast<uint8_t>((data.data[ic][1]) << 4 | data.data[ic][0]);
                     message.data = {pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val, pwm_reg_val};
                     message.CRC = utils::endian16(utils::CRC(message.data));
-                    ic--;
+                    ic++;
                 }
             }
         };
@@ -585,13 +585,14 @@ namespace ltc6811
 
             void set(Responses<uint8_t> &messages, const data::Config &dcc)
             {
-                data::ic_id ic{board::CHANE_LENGTH - 1};
+                data::ic_id ic{0};
                 for (auto &message : messages.data)
                 {
                     message.data[0] = 0xFC;
                     message.data[4] = create_bitmask(dcc.data[ic], 0, 7);
                     message.data[5] = create_bitmask(dcc.data[ic], 8, 11);
                     message.CRC = utils::endian16(utils::CRC(message.data));
+                    ic++;
                 }
             }
         };
@@ -696,6 +697,7 @@ namespace ltc6811
 
     namespace driver
     {
+        bool discharging = false;
         std::optional<bool> set_config(data::Config config)
         {
             registers::req_write_config_a.set(config);
@@ -836,6 +838,7 @@ namespace ltc6811
                             if (data.data[ic][i])
                             {
                                 state[ic] = DeltaLine::ABS_LINE;
+                                discharging = true;
                                 break;
                             }
                         }
@@ -847,6 +850,7 @@ namespace ltc6811
                             if (data.data[ic][i])
                             {
                                 state[ic] = DeltaLine::ABS_LINE;
+                                discharging = true;
                                 break;
                             }
                         }
@@ -932,12 +936,22 @@ namespace ltc6811
 
         void loop()
         {
-            if (get_cell().has_value() && get_temp().has_value() && get_status().has_value() && get_duty().has_value() && get_config().has_value())
+            if (!discharging)
             {
-                if (param::DISCHARGE_PERMISSION == param::Dcp::Enable)
+
+                if (get_cell().has_value() && get_temp().has_value() && get_status().has_value() && get_duty().has_value() && get_config().has_value())
                 {
-                    discharge::loop<discharge::Method_Min>();
+                    if (param::DISCHARGE_PERMISSION == param::Dcp::Enable)
+                    {
+                        discharge::loop<discharge::Method_Min>();
+                    }
                 }
+            }
+            else
+            {
+                data::Config clear{};
+                set_config(clear);
+                discharging = false;
             }
         }
     };

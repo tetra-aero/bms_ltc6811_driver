@@ -16,8 +16,8 @@ namespace board
     static constexpr std::array<uint8_t, 4> DEVICE_IP_ADDRESS = {192, 168, 3, 14};
     static constexpr std::array<uint8_t, 4> GATEWAY_ADDRESS = {192, 168, 3, 1};
     static constexpr std::array<uint8_t, 4> SUBNET_MASK = {255, 255, 255, 0};
-    static constexpr const char *SSID = "***********";
-    static constexpr const char *PASSWORD = "**********";
+    static constexpr const char *SSID = "A0957FC83E05-2.4";
+    static constexpr const char *PASSWORD = "373191191ak";
     static constexpr uint32_t CELL_NUM_PER_IC = 12;
     static constexpr uint32_t THURMISTA_NUM_PER_IC = 5;
     using CELL_DATA = std::array<std::array<uint16_t, CELL_NUM_PER_IC>, CHANE_LENGTH>;
