@@ -770,7 +770,7 @@ namespace ltc6811
         std::optional<std::reference_wrapper<data::CellVoltage>> get_cell()
         {
             data::cell_data.clear();
-            registers::req_start_conv_cv.request(SPI, SS);
+            // registers::req_start_conv_cv.request(SPI, SS);
             auto res_a = registers::req_read_cell_a.request(SPI, SS);
             auto res_b = registers::req_read_cell_b.request(SPI, SS);
             auto res_c = registers::req_read_cell_c.request(SPI, SS);

@@ -35,6 +35,7 @@ void loop() {
 
 
 ## Various parameter adjustments 
+### You should check these parameters before building the firmware.
 ```src/params.h```
 | Variables         | Meaning                                          |
 | ----------------- | ------------------------------------------------ |
