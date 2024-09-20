@@ -67,8 +67,8 @@ namespace ltc6811
 
         struct CellVoltage
         {
-            uint32_t sum{};
-            uint32_t average{};
+            uint64_t sum{};
+            uint64_t average{};
             board::CELL_DATA vol;
             std::pair<uint16_t, uint16_t> vol_range{std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
             std::pair<ic_id, cell_id> min_id{0xFF, 0xFF};
@@ -104,12 +104,14 @@ namespace ltc6811
         {
             board::TEMP_DATA temp;
             std::array<bool, board::CHANE_LENGTH> over;
-            int32_t battery_average;
-            int32_t pcb_average;
+            int64_t battery_average;
+            int64_t pcb_average;
             std::array<int32_t, board::CHANE_LENGTH> vref2;
             std::pair<int32_t, int32_t> temp_range{std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
             std::pair<ic_id, thrm_id> min_id{0xFF, 0xFF};
             std::pair<ic_id, thrm_id> max_id{0xFF, 0xFF};
+            std::pair<ic_id, thrm_id> bat_max_id{0xFF, 0xFF};
+            std::pair<ic_id, thrm_id> pcb_max_id{0xFF, 0xFF};
 
             void clear()
             {
@@ -144,9 +146,10 @@ namespace ltc6811
             {
                 pcb_average = 0;
                 battery_average = 0;
-                for (auto &x : temp)
+
+                for (const auto index : param::PCB_THRMISTA_ID)
                 {
-                    for (const auto index : param::PCB_THRMISTA_ID)
+                    for (auto &x : temp)
                     {
                         pcb_average += x[index];
                     }

@@ -12,6 +12,7 @@
 #include "bms_isl28022_driver.h"
 
 void setup() {
+    Serial.begin(115200);
     can::driver::setup();
     udp::driver::setup();
     ltc6811::driver::setup();

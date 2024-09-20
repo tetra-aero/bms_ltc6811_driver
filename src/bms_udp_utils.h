@@ -85,7 +85,7 @@ namespace udp
                 std::array<int16_t, 4>
                     data = {
                         static_cast<int16_t>(temp_data.battery_average / 1000),
-                        static_cast<int16_t>(temp_data.temp_range.first / 1000),
+                        static_cast<int16_t>(temp_data.temp_range.second / 1000),
                         static_cast<int16_t>(temp_data.pcb_average / 1000),
                         static_cast<int16_t>(temp_data.temp_range.second / 1000)};
                 transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
