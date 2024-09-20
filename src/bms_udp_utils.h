@@ -44,7 +44,7 @@ namespace udp
 
         uint16_t create_cell_segment(ltc6811::data::ic_id ic, ltc6811::data::cell_id cell, uint16_t data)
         {
-            return ((ic * board::CELL_NUM_PER_IC + cell) << 9) + (data / 10);
+            return ((ic * board::CELL_NUM_PER_IC + cell) << 9) + (data);
         }
 
         void response_cellvol(AsyncUDPPacket &packet)

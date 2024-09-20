@@ -730,6 +730,16 @@ namespace ltc6811
             if (!res.has_value())
                 return std::nullopt;
             registers::req_read_pwm.parse();
+            for (auto &ic : data::pwm.data)
+            {
+                for (auto cell : ic)
+                {
+                    if (cell != static_cast<uint8_t>(duty))
+                    {
+                        return std::nullopt;
+                    }
+                }
+            }
             return true;
         }
 

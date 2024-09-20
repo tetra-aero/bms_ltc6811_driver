@@ -32,7 +32,7 @@ void setup()
   // pinMode(MISO, INPUT);
   // Serial.println("cell 0, cell 1, cell 2, cell 3, cell 4, cell 5, cell 6, cell 7, cell 8, cell 9, cell 10, cell 11,");
   // bms.SetPwmDuty(LTC6811::Duty::Ratio_12_16);
-  // can::driver::setup();
+  can::driver::setup();
   // udp::driver::setup();
   ltc6811::driver::setup();
   isl28022::driver::setup();
@@ -46,7 +46,7 @@ void loop()
   // isl28022::driver::loop();
   // isl28022::data::dbg();
   // udp::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
-  // can::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
+  can::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
 }
 
 //   {
