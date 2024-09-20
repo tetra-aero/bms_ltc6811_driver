@@ -33,6 +33,8 @@ void loop() {
 ## Communication Protocol on CAN/UDP
 ![](./canprotocol_preview.svg)
 
+## DBG on Serial Monitor
+![](./dbg.png)
 
 ## Various parameter adjustments 
 ### You should check these parameters before building the firmware.
