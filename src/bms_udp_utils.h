@@ -71,15 +71,15 @@ namespace udp
         {
             {
                 std::array<uint32_t, 2> data = {voltage, current};
-                transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_MAIN_IV, board::CAN_ID), data);
+                //transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_MAIN_IV, board::CAN_ID), data);
             }
             {
                 std::array<uint32_t, 2> data = {cell_data.vol_range.first, cell_data.vol_range.second};
-                transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE, board::CAN_ID), data);
+                //transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE, board::CAN_ID), data);
             }
             {
                 std::array<uint8_t, 8> data = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000100};
-                transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL, board::CAN_ID), data);
+                //transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL, board::CAN_ID), data);
             }
             {
                 std::array<int16_t, 4>
@@ -88,7 +88,7 @@ namespace udp
                         static_cast<int16_t>(temp_data.temp_range.second / 1000),
                         static_cast<int16_t>(temp_data.pcb_average / 1000),
                         static_cast<int16_t>(temp_data.temp_range.second / 1000)};
-                transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
+                //transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
             }
             if (request)
             {
@@ -96,11 +96,11 @@ namespace udp
                 for (size_t i = 0; i < ltc6811::data::cell_data.vol.size(); i++)
                 {
                     data = {create_cell_segment(i, 0, ltc6811::data::cell_data.vol[i][0] / 100), create_cell_segment(i, 1, ltc6811::data::cell_data.vol[i][1] / 100), create_cell_segment(i, 2, ltc6811::data::cell_data.vol[i][2] / 100), create_cell_segment(i, 3, ltc6811::data::cell_data.vol[i][3] / 100)};
-                    transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                    //transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
                     data = {create_cell_segment(i, 4, ltc6811::data::cell_data.vol[i][4] / 100), create_cell_segment(i, 5, ltc6811::data::cell_data.vol[i][5] / 100), create_cell_segment(i, 6, ltc6811::data::cell_data.vol[i][6] / 100), create_cell_segment(i, 7, ltc6811::data::cell_data.vol[i][7] / 100)};
-                    transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                    //transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
                     data = {create_cell_segment(i, 8, ltc6811::data::cell_data.vol[i][8] / 100), create_cell_segment(i, 9, ltc6811::data::cell_data.vol[i][9] / 100), create_cell_segment(i, 10, ltc6811::data::cell_data.vol[i][10] / 100), create_cell_segment(i, 11, ltc6811::data::cell_data.vol[i][11] / 100)};
-                    transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                    //transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
                 }
                 request = false;
             }

@@ -13,20 +13,20 @@
 
 void setup() {
     Serial.begin(115200);
-    can::driver::setup();
-    udp::driver::setup();
+    //can::driver::setup();
+    //udp::driver::setup();
     ltc6811::driver::setup();
-    isl28022::driver::setup();
+    //isl28022::driver::setup();
 }
 
 void loop() {
     delay(1000);
     ltc6811::driver::loop();
     ltc6811::data::dbg(); // Serial Print Debug
-    isl28022::driver::loop();
-    isl28022::data::dbg(); // Serial Print Debug
-    udp::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
-    can::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
+    //isl28022::driver::loop();
+    i//sl28022::data::dbg(); // Serial Print Debug
+    //udp::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
+    //can::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
 }
 ```
 

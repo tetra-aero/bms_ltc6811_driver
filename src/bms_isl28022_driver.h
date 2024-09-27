@@ -228,6 +228,7 @@ namespace isl28022
             Serial.println(("# isl28022: Power: " + std::to_string(power)).c_str());
             Serial.println(("# isl28022: BusVoltage: " + std::to_string(bus_voltage)).c_str());
             Serial.println(("# isl28022: ShuntVoltage: " + std::to_string(shunt_voltage)).c_str());
+
         }
     };
 
