@@ -47,16 +47,16 @@ namespace ltc6811
         static constexpr Duty DUTY_RATIO = Duty::Ratio_1_16;
         static constexpr Mode DETECTION_MODE = Mode::Normal;
 
-        static constexpr float TEMP_LIMIT = 50.0;
-        static constexpr uint32_t VOL_DIF_TOL_LIMIT = 50;
-        static constexpr uint32_t VOL_DIF_ABS_LIMIT = 20;
+        static constexpr double TEMP_LIMIT = 50.0;
+        static constexpr double VOL_DIF_TOL_LIMIT = 50;
+        static constexpr double VOL_DIF_ABS_LIMIT = 20;
 
         static constexpr uint32_t REGISTER_BYTES = 8;
         static constexpr uint32_t WAKEUP_DELAY = 400;
-        static constexpr uint32_t B_VALUE = 4550;
-        static constexpr uint32_t THRMISTA_VOLTAGE = 30000.0;
-        static constexpr std::initializer_list<uint8_t> PCB_THRMISTA_ID = {0, 1, 2, 3};
-        static constexpr std::initializer_list<uint8_t> BATTERY_THRMISTA_ID = {4};
+        static constexpr double B_VALUE = 4550.0;
+        static constexpr double THRMISTA_VOLTAGE = 30000.0;
+        static constexpr std::initializer_list<uint8_t> PCB_THRMISTA_ID = {0};
+        static constexpr std::initializer_list<uint8_t> BATTERY_THRMISTA_ID = {1, 2, 3, 4};
     };
 
     namespace data
@@ -107,26 +107,28 @@ namespace ltc6811
             int64_t pcb_average;
             std::array<int32_t, board::CHANE_LENGTH> vref2;
             std::pair<int32_t, int32_t> temp_range{std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
+            std::pair<int32_t, int32_t> temp_range_pcb{std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
+            std::pair<int32_t, int32_t> temp_range_battery{std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
             std::pair<ic_id, thrm_id> min_id{0xFF, 0xFF};
             std::pair<ic_id, thrm_id> max_id{0xFF, 0xFF};
-            std::pair<ic_id, thrm_id> bat_max_id{0xFF, 0xFF};
-            std::pair<ic_id, thrm_id> pcb_max_id{0xFF, 0xFF};
 
             void clear()
             {
                 temp_range = {std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
+                temp_range_pcb = {std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
+                temp_range_battery = {std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
+                for (auto &x : over)
+                {
+                    x = false;
+                }
             }
 
             void update(ic_id ic, thrm_id cell, int32_t celsius)
             {
                 temp[ic][cell] = celsius;
-                if (celsius > param::TEMP_LIMIT)
+                if (celsius > (param::TEMP_LIMIT * 1000))
                 {
                     over[ic] = true;
-                }
-                else
-                {
-                    over[ic] = false;
                 }
                 if (temp_range.first > celsius)
                 {
@@ -150,6 +152,14 @@ namespace ltc6811
                     for (auto &x : temp)
                     {
                         pcb_average += x[index];
+                        if (temp_range_pcb.first > x[index])
+                        {
+                            temp_range_pcb.first = x[index];
+                        }
+                        if (x[index] > temp_range_pcb.second)
+                        {
+                            temp_range_pcb.second = x[index];
+                        }
                     }
                 }
 
@@ -158,6 +168,14 @@ namespace ltc6811
                     for (auto &x : temp)
                     {
                         battery_average += x[index];
+                        if (temp_range_battery.first > x[index])
+                        {
+                            temp_range_battery.first = x[index];
+                        }
+                        if (x[index] > temp_range_battery.second)
+                        {
+                            temp_range_battery.second = x[index];
+                        }
                     }
                 }
                 pcb_average /= (board::CHANE_LENGTH * param::PCB_THRMISTA_ID.size());
@@ -332,8 +350,8 @@ namespace ltc6811
         template <typename T>
         using RESPONSE = std::array<T, 6 / sizeof(T)>;
         constexpr COMMAND MODE_BITS = {
-            (static_cast<uint8_t>(param::DETECTION_MODE) & 0b10) >> 1,
-            (static_cast<uint8_t>(param::DETECTION_MODE) & 0b01) << 7};
+            (static_cast<uint8_t>(param::DETECTION_MODE) & 0x02) >> 1,
+            (static_cast<uint8_t>(param::DETECTION_MODE) & 0x01) << 7};
         constexpr COMMAND START_CONV_CV = {0x02 | MODE_BITS[0], MODE_BITS[1] | 0x60 | (static_cast<uint8_t>(param::DISCHARGE_PERMISSION) << 4)};
         constexpr COMMAND START_CONV_AX = {0x04 | MODE_BITS[0], MODE_BITS[1] | 0x60};
         constexpr COMMAND START_CONV_STAT = {0x04 | MODE_BITS[0], MODE_BITS[1] | 0x68};
@@ -654,7 +672,6 @@ namespace ltc6811
             }
         };
 
-        template <typename T>
         struct Request
         {
             COMMANDCRC cmd;
@@ -676,9 +693,9 @@ namespace ltc6811
             }
         };
 
-        Request<uint8_t> req_start_conv_cv(create_command_crc(START_CONV_CV));
-        Request<uint8_t> req_start_conv_ax(create_command_crc(START_CONV_AX));
-        Request<uint8_t> req_start_conv_stat(create_command_crc(START_CONV_STAT));
+        Request req_start_conv_cv(create_command_crc(START_CONV_CV));
+        Request req_start_conv_ax(create_command_crc(START_CONV_AX));
+        Request req_start_conv_stat(create_command_crc(START_CONV_STAT));
         WriteRequest<uint8_t, Config> req_write_config_a(create_command_crc(WRITE_CONFIG_A));
         ReadRequest<uint8_t, Config> req_read_config_a(create_command_crc(READ_CONFIG_A));
         WriteRequest<uint8_t, Pwm> req_write_pwm(create_command_crc(WRITE_PWM));
@@ -787,8 +804,6 @@ namespace ltc6811
         std::optional<std::reference_wrapper<data::Temperature>> get_temp()
         {
             data::temp_data.clear();
-            registers::req_start_conv_ax.request(SPI, SS);
-            registers::req_start_conv_ax.request(SPI, SS);
             registers::req_start_conv_ax.request(SPI, SS);
             auto res_a = registers::req_read_temp_a.request(SPI, SS);
             auto res_b = registers::req_read_temp_b.request(SPI, SS);
