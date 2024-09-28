@@ -36,6 +36,11 @@ LTC6811::LTC6811(SPIClass &hspi, Mode mode, DCP dcp, CellCh cell, AuxCh aux, STS
     PEC = PEC15Calc(ADSTAT, 2);
     ADSTAT[2] = static_cast<uint8_t>(PEC >> 8);
     ADSTAT[3] = static_cast<uint8_t>(PEC);
+    Serial.println("OLD:");
+    for (auto x : ADAX)
+    {
+        Serial.print(std::to_string(x).c_str());
+    }
 
     slave_cfg_tx.register_group.fill({0xFC, 0, 0, 0, 0, 0});
 

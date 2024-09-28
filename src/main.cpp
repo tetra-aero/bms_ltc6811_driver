@@ -7,8 +7,8 @@ void setup()
 {
 
   Serial.begin(board::UART_BITRATE);
-  can::driver::setup();
-  udp::driver::setup();
+  // can::driver::setup();
+  // udp::driver::setup();
   ltc6811::driver::setup();
   isl28022::driver::setup();
 }
@@ -17,9 +17,9 @@ void loop()
 {
   delay(1000);
   ltc6811::driver::loop();
-  ltc6811::data::dbg();
+  // ltc6811::data::dbg();
   // isl28022::driver::loop();
   // isl28022::data::dbg();
-  udp::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
-  can::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
+  // udp::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
+  // can::driver::report(ltc6811::data::cell_data.sum, isl28022::data::current, ltc6811::data::cell_data, ltc6811::data::temp_data);
 }

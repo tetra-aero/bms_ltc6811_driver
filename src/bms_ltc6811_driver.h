@@ -76,8 +76,7 @@ namespace ltc6811
             void clear()
             {
                 sum = 0;
-                vol_range = {std::numeric_limits<uint16_t>::max(),
-                             std::numeric_limits<uint16_t>::min()};
+                vol_range = {std::numeric_limits<uint16_t>::max(), std::numeric_limits<uint16_t>::min()};
             }
             void update(ic_id ic, cell_id cell, uint16_t voltage)
             {
@@ -115,8 +114,7 @@ namespace ltc6811
 
             void clear()
             {
-                temp_range = {std::numeric_limits<int32_t>::max(),
-                              std::numeric_limits<int32_t>::min()};
+                temp_range = {std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()};
             }
 
             void update(ic_id ic, thrm_id cell, int32_t celsius)
@@ -789,6 +787,8 @@ namespace ltc6811
         std::optional<std::reference_wrapper<data::Temperature>> get_temp()
         {
             data::temp_data.clear();
+            registers::req_start_conv_ax.request(SPI, SS);
+            registers::req_start_conv_ax.request(SPI, SS);
             registers::req_start_conv_ax.request(SPI, SS);
             auto res_a = registers::req_read_temp_a.request(SPI, SS);
             auto res_b = registers::req_read_temp_b.request(SPI, SS);
