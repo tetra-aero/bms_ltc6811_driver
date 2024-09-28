@@ -6,7 +6,7 @@
 namespace board
 {
     static constexpr uint32_t CAN_ID = 0x01;
-    static constexpr uint32_t CHANE_LENGTH = 1;
+    static constexpr uint32_t CHANE_LENGTH = 2;
     static constexpr uint32_t CAN_BITRATE = 125000;
     static constexpr uint32_t UART_BITRATE = 115200;
     static constexpr uint32_t CAN_RX_PIN = 34;
