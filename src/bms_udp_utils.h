@@ -4,7 +4,7 @@
 #include <AsyncUDP.h>
 #include <WiFi.h>
 #include "bms_params.h"
-#include "bms_ltc6811_driver.h"
+#include "bms_spi_utils.h"
 namespace udp
 {
     namespace protocol
@@ -42,7 +42,7 @@ namespace udp
             UDP.writeTo(buffer.data(), buffer.size(), IPAddress(board::HOST_IP_ADDRESS.data()), 12351);
         }
 
-        uint16_t create_cell_segment(ltc6811::data::ic_id ic, ltc6811::data::cell_id cell, uint16_t data)
+        uint16_t create_cell_segment(spi::ltc6811::data::ic_id ic, spi::ltc6811::data::cell_id cell, uint16_t data)
         {
             return ((ic * board::CELL_NUM_PER_IC + cell) << 9) + (data);
         }
@@ -67,7 +67,7 @@ namespace udp
             }
         }
 
-        bool report(uint32_t voltage, uint32_t current, ltc6811::data::CellVoltage &cell_data, ltc6811::data::Temperature &temp_data)
+        bool report(uint32_t voltage, uint32_t current, spi::ltc6811::data::CellVoltage &cell_data, spi::ltc6811::data::Temperature &temp_data)
         {
             {
                 std::array<uint32_t, 2> data = {voltage, current};
@@ -93,13 +93,13 @@ namespace udp
             if (request)
             {
                 std::array<uint16_t, 4> data;
-                for (size_t i = 0; i < ltc6811::data::cell_data.vol.size(); i++)
+                for (size_t i = 0; i < spi::ltc6811::data::cell_data.vol.size(); i++)
                 {
-                    data = {create_cell_segment(i, 0, ltc6811::data::cell_data.vol[i][0] / 100), create_cell_segment(i, 1, ltc6811::data::cell_data.vol[i][1] / 100), create_cell_segment(i, 2, ltc6811::data::cell_data.vol[i][2] / 100), create_cell_segment(i, 3, ltc6811::data::cell_data.vol[i][3] / 100)};
+                    data = {create_cell_segment(i, 0, spi::ltc6811::data::cell_data.vol[i][0] / 100), create_cell_segment(i, 1, spi::ltc6811::data::cell_data.vol[i][1] / 100), create_cell_segment(i, 2, spi::ltc6811::data::cell_data.vol[i][2] / 100), create_cell_segment(i, 3, spi::ltc6811::data::cell_data.vol[i][3] / 100)};
                     transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                    data = {create_cell_segment(i, 4, ltc6811::data::cell_data.vol[i][4] / 100), create_cell_segment(i, 5, ltc6811::data::cell_data.vol[i][5] / 100), create_cell_segment(i, 6, ltc6811::data::cell_data.vol[i][6] / 100), create_cell_segment(i, 7, ltc6811::data::cell_data.vol[i][7] / 100)};
+                    data = {create_cell_segment(i, 4, spi::ltc6811::data::cell_data.vol[i][4] / 100), create_cell_segment(i, 5, spi::ltc6811::data::cell_data.vol[i][5] / 100), create_cell_segment(i, 6, spi::ltc6811::data::cell_data.vol[i][6] / 100), create_cell_segment(i, 7, spi::ltc6811::data::cell_data.vol[i][7] / 100)};
                     transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                    data = {create_cell_segment(i, 8, ltc6811::data::cell_data.vol[i][8] / 100), create_cell_segment(i, 9, ltc6811::data::cell_data.vol[i][9] / 100), create_cell_segment(i, 10, ltc6811::data::cell_data.vol[i][10] / 100), create_cell_segment(i, 11, ltc6811::data::cell_data.vol[i][11] / 100)};
+                    data = {create_cell_segment(i, 8, spi::ltc6811::data::cell_data.vol[i][8] / 100), create_cell_segment(i, 9, spi::ltc6811::data::cell_data.vol[i][9] / 100), create_cell_segment(i, 10, spi::ltc6811::data::cell_data.vol[i][10] / 100), create_cell_segment(i, 11, spi::ltc6811::data::cell_data.vol[i][11] / 100)};
                     transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
                 }
                 request = false;
