@@ -1,3 +1,6 @@
 #pragma once
 
-#incldude
+namespace soc
+{
+
+};

@@ -100,7 +100,6 @@ namespace can
             {
                 if (init & CAN.packetId() == param::packet_id && CAN.available() >= 8)
                 {
-                    Serial.println("GET");
                     uint8_t buffer[8];
                     CAN.readBytes(buffer, 8);
                     auto res = Response(buffer);
@@ -135,16 +134,20 @@ namespace can
     namespace driver
     {
         bool request = false;
+        QueueHandle_t can_message_queue;
+        volatile SemaphoreHandle_t can_peripheral_semaphore;
 
         template <typename T, size_t S>
         void transmit(uint32_t packet_id, std::array<T, S> &data)
         {
             const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.data());
             const size_t size = sizeof(data) > 8 ? 8 : sizeof(data);
+            xSemaphoreTake(can_peripheral_semaphore, portMAX_DELAY);
             CAN.beginExtendedPacket(packet_id);
             for (size_t i = 0; i < size; i++)
                 CAN.write(buffer[i]);
             CAN.endPacket();
+            xSemaphoreGive(can_peripheral_semaphore);
         }
 
         uint16_t create_cell_segment(spi::ltc6811::data::ic_id ic, spi::ltc6811::data::cell_id cell, uint16_t data)
@@ -154,14 +157,24 @@ namespace can
 
         void callback(int packetSize)
         {
-            if (CAN.packetId() != csnv700::param::packet_id)
+            xSemaphoreTakeFromISR(can_peripheral_semaphore, NULL);
+            if (CAN.packetId() == csnv700::param::packet_id)
+            {
+                uint8_t buffer[8];
+                CAN.readBytes(buffer, 8);
+                xQueueSendFromISR(can_message_queue, buffer, NULL);
+            }
+            else
             {
                 request = true;
             }
+            xSemaphoreGiveFromISR(can_peripheral_semaphore, 0);
         }
 
         bool setup()
         {
+            can_peripheral_semaphore = xSemaphoreCreateBinary();
+            can_message_queue = xQueueCreate(20, sizeof(uint8_t) * 8);
             CAN.setPins(board::CAN_RX_PIN, board::CAN_TX_PIN);
             if (!CAN.begin(board::CAN_BITRATE * 2))
             {
