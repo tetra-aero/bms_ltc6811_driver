@@ -93,13 +93,13 @@ namespace udp
             if (request)
             {
                 std::array<uint16_t, 4> data;
-                for (size_t i = 0; i < spi::ltc6811::data::cell_data.vol.size(); i++)
+                for (size_t i = 0; i < cell_data.vol.size(); i++)
                 {
-                    data = {create_cell_segment(i, 0, spi::ltc6811::data::cell_data.vol[i][0] / 100), create_cell_segment(i, 1, spi::ltc6811::data::cell_data.vol[i][1] / 100), create_cell_segment(i, 2, spi::ltc6811::data::cell_data.vol[i][2] / 100), create_cell_segment(i, 3, spi::ltc6811::data::cell_data.vol[i][3] / 100)};
+                    data = {create_cell_segment(i, 0, cell_data.vol[i][0] / 100), create_cell_segment(i, 1, cell_data.vol[i][1] / 100), create_cell_segment(i, 2, cell_data.vol[i][2] / 100), create_cell_segment(i, 3, cell_data.vol[i][3] / 100)};
                     transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                    data = {create_cell_segment(i, 4, spi::ltc6811::data::cell_data.vol[i][4] / 100), create_cell_segment(i, 5, spi::ltc6811::data::cell_data.vol[i][5] / 100), create_cell_segment(i, 6, spi::ltc6811::data::cell_data.vol[i][6] / 100), create_cell_segment(i, 7, spi::ltc6811::data::cell_data.vol[i][7] / 100)};
+                    data = {create_cell_segment(i, 4, cell_data.vol[i][4] / 100), create_cell_segment(i, 5, cell_data.vol[i][5] / 100), create_cell_segment(i, 6, cell_data.vol[i][6] / 100), create_cell_segment(i, 7, cell_data.vol[i][7] / 100)};
                     transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                    data = {create_cell_segment(i, 8, spi::ltc6811::data::cell_data.vol[i][8] / 100), create_cell_segment(i, 9, spi::ltc6811::data::cell_data.vol[i][9] / 100), create_cell_segment(i, 10, spi::ltc6811::data::cell_data.vol[i][10] / 100), create_cell_segment(i, 11, spi::ltc6811::data::cell_data.vol[i][11] / 100)};
+                    data = {create_cell_segment(i, 8, cell_data.vol[i][8] / 100), create_cell_segment(i, 9, cell_data.vol[i][9] / 100), create_cell_segment(i, 10, cell_data.vol[i][10] / 100), create_cell_segment(i, 11, cell_data.vol[i][11] / 100)};
                     transmit(protocol::create_packet_id(protocol::UDP_PACKET_ID::UDP_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
                 }
                 request = false;

@@ -90,7 +90,7 @@ namespace can
                 }
                 void parse()
                 {
-                    data::current = (data[0] | data[1] << 8 | data[2] << 16 | data[3] << 24) - 0x80000000;
+                    data::current = (data[3] | data[2] << 8 | data[1] << 16 | data[0] << 24) - 0x80000000;
                     data::error_type = data[4] >> 1;
                     data::error = data[4] & 0x01;
                 }
@@ -100,6 +100,7 @@ namespace can
             {
                 if (init & CAN.packetId() == param::packet_id && CAN.available() >= 8)
                 {
+                    Serial.println("GET");
                     uint8_t buffer[8];
                     CAN.readBytes(buffer, 8);
                     auto res = Response(buffer);
@@ -166,7 +167,7 @@ namespace can
             {
                 return true;
             }
-            CAN.filterExtended(((static_cast<uint32_t>(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST) << 8) + board::CAN_ID) ^ csnv700::param::packet_id);
+            // CAN.filterExtended(((static_cast<uint32_t>(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST) << 8) + board::CAN_ID) ^ csnv700::param::packet_id);
             // CAN.filterExtended(csnv700::param::packet_id);
             CAN.onReceive(callback);
             init = true;
