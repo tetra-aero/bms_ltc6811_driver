@@ -157,19 +157,21 @@ namespace can
 
         void callback(int packetSize)
         {
-            xSemaphoreTakeFromISR(can_peripheral_semaphore, NULL);
-            if (CAN.packetId() == csnv700::param::packet_id)
+            if (pdTRUE == xSemaphoreTakeFromISR(can_peripheral_semaphore, NULL))
             {
-                uint8_t buffer[8];
-                CAN.readBytes(buffer, 8);
-                xQueueSendFromISR(can_message_queue, buffer, NULL);
+                if (CAN.packetId() == csnv700::param::packet_id & packetSize >= 8)
+                {
+                    uint8_t buffer[8];
+                    CAN.readBytes(buffer, 8);
+                    xQueueSendFromISR(can_message_queue, buffer, NULL);
+                }
+                else
+                {
+                    request = true;
+                }
+                xSemaphoreGiveFromISR(can_peripheral_semaphore, 0);
             }
-            else
-            {
-                request = true;
-            }
-            xSemaphoreGiveFromISR(can_peripheral_semaphore, 0);
-        }
+                }
 
         bool setup()
         {
@@ -183,6 +185,7 @@ namespace can
             // CAN.filterExtended(((static_cast<uint32_t>(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST) << 8) + board::CAN_ID) ^ csnv700::param::packet_id);
             // CAN.filterExtended(csnv700::param::packet_id);
             CAN.onReceive(callback);
+            xSemaphoreGive(can_peripheral_semaphore);
             init = true;
             return false;
         }
