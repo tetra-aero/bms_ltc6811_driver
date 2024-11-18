@@ -5,8 +5,9 @@ namespace soc
     namespace param
     {
         constexpr double FULL_VOLTAGE = 44.4;
-        constexpr double FULL_CAPACITY = 6000.0;                    // mAh
+        constexpr double FULL_CAPACITY = 6000;                      // mAh
         constexpr double FULL_POWER = FULL_VOLTAGE * FULL_CAPACITY; // mWh
+        constexpr uint32_t full_charge_notify = 0x4600;
     };
     namespace data
     {

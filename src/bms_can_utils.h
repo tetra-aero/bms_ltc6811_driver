@@ -133,7 +133,6 @@ namespace can
 
     namespace driver
     {
-        bool request = false;
         QueueHandle_t can_message_queue;
         volatile SemaphoreHandle_t can_peripheral_semaphore;
 
@@ -165,13 +164,15 @@ namespace can
                     CAN.readBytes(buffer, 8);
                     xQueueSendFromISR(can_message_queue, buffer, NULL);
                 }
-                else
+                else if (CAN.packetId() == soc::param::full_charge_notify + board::CAN_ID)
                 {
-                    request = true;
+                    uint8_t buffer[8];
+                    CAN.readBytes(buffer, 8);
+                    xQueueSendFromISR(can_message_queue, buffer, NULL);
                 }
                 xSemaphoreGiveFromISR(can_peripheral_semaphore, 0);
             }
-                }
+        }
 
         bool setup()
         {
@@ -190,7 +191,7 @@ namespace can
             return false;
         }
 
-        bool report(uint32_t voltage, uint32_t current, spi::ltc6811::data::CellVoltage &cell_data, spi::ltc6811::data::Temperature &temp_data)
+        bool report(uint32_t voltage, uint32_t current, float remain_f, float soc_f, spi::ltc6811::data::CellVoltage &cell_data, spi::ltc6811::data::Temperature &temp_data)
         {
             {
                 std::array<uint32_t, 2> data = {voltage, current};
@@ -201,7 +202,10 @@ namespace can
                 transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE, board::CAN_ID), data);
             }
             {
-                std::array<uint8_t, 8> data = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0b00000100};
+                uint16_t remain = static_cast<uint16_t>(remain_f);
+                uint8_t soc = static_cast<uint8_t>(soc_f);
+                std::array<uint8_t, 8>
+                    data = {0x00, 0x00, (remain & 0xFF), (remain & 0xFF00) >> 8, soc, 0x00, 0x00, 0b00000100};
                 transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL, board::CAN_ID), data);
             }
             {
@@ -213,23 +217,18 @@ namespace can
                         static_cast<int16_t>(temp_data.temp_range_pcb.second / 1000)};
                 transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
             }
-            if (request)
+            std::array<uint16_t, 4> data;
+            for (size_t i = 0; i < cell_data.vol.size(); i++)
             {
-                std::array<uint16_t, 4> data;
-                for (size_t i = 0; i < cell_data.vol.size(); i++)
-                {
-                    data = {create_cell_segment(i, 0, cell_data.vol[i][0] / 100), create_cell_segment(i, 1, cell_data.vol[i][1] / 100), create_cell_segment(i, 2, cell_data.vol[i][2] / 100), create_cell_segment(i, 3, cell_data.vol[i][3] / 100)};
-                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                    data = {create_cell_segment(i, 4, cell_data.vol[i][4] / 100), create_cell_segment(i, 5, cell_data.vol[i][5] / 100), create_cell_segment(i, 6, cell_data.vol[i][6] / 100), create_cell_segment(i, 7, cell_data.vol[i][7] / 100)};
-                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                    data = {create_cell_segment(i, 8, cell_data.vol[i][8] / 100), create_cell_segment(i, 9, cell_data.vol[i][9] / 100), create_cell_segment(i, 10, cell_data.vol[i][10] / 100), create_cell_segment(i, 11, cell_data.vol[i][11] / 100)};
-                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                }
-                request = false;
+                data = {create_cell_segment(i, 0, cell_data.vol[i][0] / 100), create_cell_segment(i, 1, cell_data.vol[i][1] / 100), create_cell_segment(i, 2, cell_data.vol[i][2] / 100), create_cell_segment(i, 3, cell_data.vol[i][3] / 100)};
+                transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                data = {create_cell_segment(i, 4, cell_data.vol[i][4] / 100), create_cell_segment(i, 5, cell_data.vol[i][5] / 100), create_cell_segment(i, 6, cell_data.vol[i][6] / 100), create_cell_segment(i, 7, cell_data.vol[i][7] / 100)};
+                transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                data = {create_cell_segment(i, 8, cell_data.vol[i][8] / 100), create_cell_segment(i, 9, cell_data.vol[i][9] / 100), create_cell_segment(i, 10, cell_data.vol[i][10] / 100), create_cell_segment(i, 11, cell_data.vol[i][11] / 100)};
+                transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
             }
             return true;
         }
-
     };
 
 };

@@ -14,10 +14,12 @@ void can_send_task(void *pvParameters)
   {
     xSemaphoreTake(ltc6811_data_semaphore, portMAX_DELAY);
     xSemaphoreTake(csnv700_data_semaphore, portMAX_DELAY);
-    can::driver::report(spi::ltc6811::data::cell_data.sum, can::csnv700::data::current, spi::ltc6811::data::cell_data, spi::ltc6811::data::temp_data);
+    xSemaphoreTake(soc_data_semaphore, portMAX_DELAY);
+    can::driver::report(spi::ltc6811::data::cell_data.sum, can::csnv700::data::current, soc::param::FULL_CAPACITY, soc::data::soc, spi::ltc6811::data::cell_data, spi::ltc6811::data::temp_data);
+    xSemaphoreGive(soc_data_semaphore);
     xSemaphoreGive(csnv700_data_semaphore);
     xSemaphoreGive(ltc6811_data_semaphore);
-    vTaskDelay(2000);
+    vTaskDelay(500);
   }
 }
 
@@ -27,7 +29,9 @@ void udp_send_task(void *pvParameters)
   {
     xSemaphoreTake(ltc6811_data_semaphore, portMAX_DELAY);
     xSemaphoreTake(csnv700_data_semaphore, portMAX_DELAY);
+    xSemaphoreTake(soc_data_semaphore, portMAX_DELAY);
     udp::driver::report(spi::ltc6811::data::cell_data.sum, can::csnv700::data::current, spi::ltc6811::data::cell_data, spi::ltc6811::data::temp_data);
+    xSemaphoreGive(soc_data_semaphore);
     xSemaphoreGive(csnv700_data_semaphore);
     xSemaphoreGive(ltc6811_data_semaphore);
     vTaskDelay(2000);

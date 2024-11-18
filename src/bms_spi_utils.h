@@ -45,7 +45,7 @@ namespace spi
             };
             constexpr uint32_t T_REF_MAX = 4400;
             constexpr uint32_t T_CYCLE_FAST_MAX = 1185;
-            static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Disable;
+            static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Enable;
             static constexpr Duty DUTY_RATIO = Duty::Ratio_1_16;
             static constexpr Mode DETECTION_MODE = Mode::Normal;
 
