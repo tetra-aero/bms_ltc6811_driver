@@ -4,7 +4,7 @@
 #include <CAN.h>
 #include "bms_params.h"
 #include "bms_spi_utils.h"
-
+#include "bms_soc_utils.h"
 namespace can
 {
     bool init = false;
@@ -166,9 +166,13 @@ namespace can
                 }
                 else if (CAN.packetId() == soc::param::full_charge_notify + board::CAN_ID)
                 {
-                    uint8_t buffer[8];
-                    CAN.readBytes(buffer, 8);
-                    xQueueSendFromISR(can_message_queue, buffer, NULL);
+
+                    if (pdTRUE == xSemaphoreTakeFromISR(soc::data::soc_data_semaphore, NULL))
+                    {
+                        Serial.println("aa");
+                        soc::driver::full_recharge();
+                        xSemaphoreGiveFromISR(soc::data::soc_data_semaphore, 0);
+                    }
                 }
                 xSemaphoreGiveFromISR(can_peripheral_semaphore, 0);
             }

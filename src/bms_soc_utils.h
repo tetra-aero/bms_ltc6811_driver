@@ -13,7 +13,7 @@ namespace soc
     {
         double soc = 100.0;
         double remain = soc * param::FULL_POWER * 60.0 * 60.0; // mW
-
+        SemaphoreHandle_t soc_data_semaphore;
         void dbg()
         {
             Serial.println(("# SoC: " + std::to_string(static_cast<float>(soc)) + "[percent]").c_str());
@@ -21,9 +21,16 @@ namespace soc
     };
     namespace driver
     {
+        void setup()
+        {
+            data::soc_data_semaphore = xSemaphoreCreateBinary();
+            xSemaphoreGive(data::soc_data_semaphore);
+        }
+
         void full_recharge()
         {
-            data::soc = 100.0;
+            data::remain = 100 * param::FULL_POWER * 60.0 * 60.0;
+            ;
         }
 
         double update_soc(float current_mA, float voltage, float delta_ms = 10.0)
