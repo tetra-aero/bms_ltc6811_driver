@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <algorithm>
 #include <CAN.h>
 #include "bms_params.h"
 #include "bms_spi_utils.h"
@@ -30,6 +31,7 @@ namespace can
             int32_t current;
             bool error;
             uint8_t error_type;
+            SemaphoreHandle_t csnv700_data_semaphore;
 
             void dbg()
             {
@@ -96,6 +98,12 @@ namespace can
                 }
             };
 
+            void setup()
+            {
+                data::csnv700_data_semaphore = xSemaphoreCreateBinary();
+                xSemaphoreGive(data::csnv700_data_semaphore);
+            }
+
             void loop()
             {
                 if (init & CAN.packetId() == param::packet_id && CAN.available() >= 8)
@@ -121,7 +129,7 @@ namespace can
             CAN_PACKET_BMS_STATUS_THROTTLE_CH_DISCH_BOOL,
             CAN_PACKET_BMS_STATUS_TEMPERATURES,
             CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL,
-            CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL_REQUEST,
+            CAN_PACKET_BMS_STATUS_TEMPERATURE_DETAIL,
         };
 
         constexpr uint32_t create_packet_id(CAN_PACKET_ID packet_id, uint32_t board_id)
@@ -154,6 +162,13 @@ namespace can
             return ((ic * board::CELL_NUM_PER_IC + cell) << 9) + (data);
         }
 
+        uint16_t create_temp_segment(spi::ltc6811::data::ic_id ic, spi::ltc6811::data::thrm_id thrm, int16_t data)
+        {
+            uint16_t sign_bit = (data < 0) ? 1 : 0;
+            uint16_t abs_data = static_cast<uint16_t>(std::clamp(std::abs(data), 0, 511));
+            return ((ic * board::THURMISTA_NUM_PER_IC + thrm) << 10) + ((sign_bit << 9) | abs_data);
+        }
+
         void callback(int packetSize)
         {
             if (pdTRUE == xSemaphoreTakeFromISR(can_peripheral_semaphore, NULL))
@@ -169,7 +184,6 @@ namespace can
 
                     if (pdTRUE == xSemaphoreTakeFromISR(soc::data::soc_data_semaphore, NULL))
                     {
-                        Serial.println("aa");
                         soc::driver::full_recharge();
                         xSemaphoreGiveFromISR(soc::data::soc_data_semaphore, 0);
                     }
@@ -198,7 +212,8 @@ namespace can
         bool report(uint32_t voltage, uint32_t current, float remain_f, float soc_f, spi::ltc6811::data::CellVoltage &cell_data, spi::ltc6811::data::Temperature &temp_data)
         {
             {
-                std::array<uint32_t, 2> data = {voltage, current};
+                std::array<uint32_t, 2> data = {voltage,
+                                                current};
                 transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_MAIN_IV, board::CAN_ID), data);
             }
             {
@@ -221,18 +236,43 @@ namespace can
                         static_cast<int16_t>(temp_data.temp_range_pcb.second / 1000)};
                 transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURES, board::CAN_ID), data);
             }
-            std::array<uint16_t, 4> data;
-            for (size_t i = 0; i < cell_data.vol.size(); i++)
             {
-                data = {create_cell_segment(i, 0, cell_data.vol[i][0] / 100), create_cell_segment(i, 1, cell_data.vol[i][1] / 100), create_cell_segment(i, 2, cell_data.vol[i][2] / 100), create_cell_segment(i, 3, cell_data.vol[i][3] / 100)};
-                transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                data = {create_cell_segment(i, 4, cell_data.vol[i][4] / 100), create_cell_segment(i, 5, cell_data.vol[i][5] / 100), create_cell_segment(i, 6, cell_data.vol[i][6] / 100), create_cell_segment(i, 7, cell_data.vol[i][7] / 100)};
-                transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
-                data = {create_cell_segment(i, 8, cell_data.vol[i][8] / 100), create_cell_segment(i, 9, cell_data.vol[i][9] / 100), create_cell_segment(i, 10, cell_data.vol[i][10] / 100), create_cell_segment(i, 11, cell_data.vol[i][11] / 100)};
-                transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                std::array<uint16_t, 4> data;
+                for (size_t i = 0; i < cell_data.vol.size(); i++)
+                {
+                    data = {create_cell_segment(i, 0, cell_data.vol[i][0] / 100), create_cell_segment(i, 1, cell_data.vol[i][1] / 100), create_cell_segment(i, 2, cell_data.vol[i][2] / 100), create_cell_segment(i, 3, cell_data.vol[i][3] / 100)};
+                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                    data = {create_cell_segment(i, 4, cell_data.vol[i][4] / 100), create_cell_segment(i, 5, cell_data.vol[i][5] / 100), create_cell_segment(i, 6, cell_data.vol[i][6] / 100), create_cell_segment(i, 7, cell_data.vol[i][7] / 100)};
+                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                    data = {create_cell_segment(i, 8, cell_data.vol[i][8] / 100), create_cell_segment(i, 9, cell_data.vol[i][9] / 100), create_cell_segment(i, 10, cell_data.vol[i][10] / 100), create_cell_segment(i, 11, cell_data.vol[i][11] / 100)};
+                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_CELLVOLTAGE_DETAIL, board::CAN_ID), data);
+                }
             }
+            {
+                std::array<uint16_t, 4> data{};
+                size_t data_index = 0;
+                spi::ltc6811::data::ic_id ic = 0;
+                spi::ltc6811::data::thrm_id thrm = 0;
+                for (auto &x : temp_data.temp)
+                {
+                    for (auto y : x)
+                    {
+                        data[data_index++] = create_temp_segment(ic, thrm++, static_cast<int16_t>(y / 1000));
+                        if (data_index >= 4)
+                        {
+                            transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURE_DETAIL, board::CAN_ID), data);
+                            data_index = 0;
+                        }
+                        if (thrm >= board::THURMISTA_NUM_PER_IC)
+                        {
+                            thrm = 0;
+                            ic++;
+                        }
+                    }
+                }
+            }
+
             return true;
         }
     };
-
 };

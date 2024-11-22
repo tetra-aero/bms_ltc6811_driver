@@ -66,7 +66,7 @@ namespace spi
             using ic_id = uint8_t;
             using cell_id = uint8_t;
             using thrm_id = uint8_t;
-
+            SemaphoreHandle_t ltc6811_data_semaphore;
             struct CellVoltage
             {
                 uint64_t sum{};
@@ -950,6 +950,8 @@ namespace spi
                 {
                     Serial.println("Error");
                 }
+                data::ltc6811_data_semaphore = xSemaphoreCreateBinary();
+                xSemaphoreGive(data::ltc6811_data_semaphore);
             }
 
             void loop()

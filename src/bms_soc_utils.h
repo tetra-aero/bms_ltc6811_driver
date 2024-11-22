@@ -30,7 +30,6 @@ namespace soc
         void full_recharge()
         {
             data::remain = 100 * param::FULL_POWER * 60.0 * 60.0;
-            ;
         }
 
         double update_soc(float current_mA, float voltage, float delta_ms = 10.0)
