@@ -11,7 +11,7 @@ void can_send_task(void *pvParameters)
     xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, portMAX_DELAY);
     xSemaphoreTake(can::csnv700::data::csnv700_data_semaphore, portMAX_DELAY);
     xSemaphoreTake(soc::data::soc_data_semaphore, portMAX_DELAY);
-    can::driver::report(spi::ltc6811::data::cell_data.sum, can::csnv700::data::current, soc::param::FULL_CAPACITY, soc::data::soc, spi::ltc6811::data::cell_data, spi::ltc6811::data::temp_data);
+    can::driver::report(spi::ltc6811::data::cell_data.sum, can::csnv700::data::current, soc::data::soc * soc::param::FULL_CAPACITY / 100, soc::data::soc, spi::ltc6811::data::cell_data, spi::ltc6811::data::temp_data);
     xSemaphoreGive(soc::data::soc_data_semaphore);
     xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);
     xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
