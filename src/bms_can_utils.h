@@ -145,10 +145,10 @@ namespace can
         volatile SemaphoreHandle_t can_peripheral_semaphore;
 
         template <typename T, size_t S>
-        void transmit(uint32_t packet_id, std::array<T, S> &data)
+        void transmit(uint32_t packet_id, std::array<T, S> &data, size_t packet_size = 8)
         {
             const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.data());
-            const size_t size = sizeof(data) > 8 ? 8 : sizeof(data);
+            const size_t size = packet_size > 8 ? 8 : packet_size;
             xSemaphoreTake(can_peripheral_semaphore, portMAX_DELAY);
             CAN.beginExtendedPacket(packet_id);
             for (size_t i = 0; i < size; i++)
@@ -262,6 +262,7 @@ namespace can
                         {
                             transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURE_DETAIL, board::CAN_ID), data);
                             data_index = 0;
+                            data = {};
                         }
                         if (thrm >= board::THURMISTA_NUM_PER_IC)
                         {
@@ -269,6 +270,10 @@ namespace can
                             ic++;
                         }
                     }
+                }
+                if (data_index > 0)
+                {
+                    transmit(protocol::create_packet_id(protocol::CAN_PACKET_ID::CAN_PACKET_BMS_STATUS_TEMPERATURE_DETAIL, board::CAN_ID), data, data_index * sizeof(uint16_t));
                 }
             }
 
