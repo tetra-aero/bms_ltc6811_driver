@@ -42,50 +42,46 @@ void csnv700_task(void *pvParameters)
   uint8_t buffer[8];
   for (;;)
   {
-    if (xSemaphoreTake(can::csnv700::data::csnv700_data_semaphore, 0) == pdTRUE)
+    xSemaphoreTake(can::csnv700::data::csnv700_data_semaphore, portMAX_DELAY);
+    BaseType_t result = xQueueReceive(xQueue, buffer, 0);
+    if (result == pdPASS)
     {
-      BaseType_t result = xQueueReceive(xQueue, buffer, 0);
-      if (result == pdPASS)
+      auto response = can::csnv700::driver::Response(buffer);
+      if (response.check_crc())
       {
-        auto response = can::csnv700::driver::Response(buffer);
-        if (response.check_crc())
-        {
-          response.parse();
-          soc::driver::update_soc(can::csnv700::data::current, spi::ltc6811::data::cell_data.sum / 10000);
-        }
+        response.parse();
+        soc::driver::update_soc(can::csnv700::data::current, spi::ltc6811::data::cell_data.sum / 10000);
       }
-      xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);
-      vTaskDelay(5);
     }
+    xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);
+    vTaskDelay(5);
   }
 }
 void ltc6811_task(void *pvParameters)
 {
   for (;;)
   {
-    if (xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, 0) == pdTRUE)
-    {
-      spi::ltc6811::driver::loop();
-      xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
-      vTaskDelay(1000);
-    }
+    xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, portMAX_DELAY);
+    spi::ltc6811::driver::loop();
+    xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
+    vTaskDelay(1000);
   }
 }
 void dbg_task(void *pvParameters)
 {
   for (;;)
   {
-    if (xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, portMAX_DELAY) == pdTRUE)
+    if (xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, 0) == pdTRUE)
     {
-      // spi::ltc6811::data::dbg();
+      spi::ltc6811::data::dbg();
       xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
     }
-    if (xSemaphoreTake(can::csnv700::data::csnv700_data_semaphore, portMAX_DELAY) == pdTRUE)
+    if (xSemaphoreTake(can::csnv700::data::csnv700_data_semaphore, 0) == pdTRUE)
     {
       can::csnv700::data::dbg();
       xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);
     }
-    if (xSemaphoreTake(soc::data::soc_data_semaphore, portMAX_DELAY) == pdTRUE)
+    if (xSemaphoreTake(soc::data::soc_data_semaphore, 0) == pdTRUE)
     {
       soc::data::dbg();
       xSemaphoreGive(soc::data::soc_data_semaphore);
@@ -98,8 +94,6 @@ void dbg_task(void *pvParameters)
 void setup()
 {
   Serial.begin(board::UART_BITRATE);
-  /* spi::ltc6811::data::ltc6811_data_semaphore = xSemaphoreCreateBinary();*/
-  /* can::csnv700::data::csnv700_data_semaphore = xSemaphoreCreateBinary();*/
   can::driver::setup();
   // udp::driver::setup();
   soc::driver::setup();
@@ -110,9 +104,7 @@ void setup()
   xTaskCreate(reinterpret_cast<TaskFunction_t>(csnv700_task), "csnv700", 2048, can::driver::can_message_queue, 1, NULL);
   // // xTaskCreate(reinterpret_cast<TaskFunction_t>(udp_send_task), "udp_send", 2048, NULL, 1, NULL);
   xTaskCreate(reinterpret_cast<TaskFunction_t>(can_send_task), "can_send", 2048, NULL, 1, NULL);
-  xTaskCreate(dbg_task, "dbg", 10000, NULL, 1, NULL);
-  /*xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);*/
-  /*xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);*/
+  xTaskCreate(reinterpret_cast<TaskFunction_t>(dbg_task), "dbg", 10000, NULL, 1, NULL);
 }
 
 void loop()
