@@ -95,12 +95,13 @@ void dbg_task(void *pvParameters)
 void setup()
 {
   Serial.begin(board::UART_BITRATE);
- /* spi::ltc6811::data::ltc6811_data_semaphore = xSemaphoreCreateBinary();*/
- /* can::csnv700::data::csnv700_data_semaphore = xSemaphoreCreateBinary();*/
+  /* spi::ltc6811::data::ltc6811_data_semaphore = xSemaphoreCreateBinary();*/
+  /* can::csnv700::data::csnv700_data_semaphore = xSemaphoreCreateBinary();*/
   can::driver::setup();
   // udp::driver::setup();
   soc::driver::setup();
   spi::ltc6811::driver::setup();
+  can::csnv700::driver::setup();
   delay(1000);
   xTaskCreate(reinterpret_cast<TaskFunction_t>(ltc6811_task), "ltc6811", 2048, NULL, 1, NULL);
   xTaskCreate(reinterpret_cast<TaskFunction_t>(csnv700_task), "csnv700", 2048, can::driver::can_message_queue, 1, NULL);
