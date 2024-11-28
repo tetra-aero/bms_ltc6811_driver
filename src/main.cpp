@@ -8,6 +8,7 @@ void can_send_task(void *pvParameters)
 {
   for (;;)
   {
+
     xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, portMAX_DELAY);
     xSemaphoreTake(can::csnv700::data::csnv700_data_semaphore, portMAX_DELAY);
     xSemaphoreTake(soc::data::soc_data_semaphore, portMAX_DELAY);
@@ -15,7 +16,7 @@ void can_send_task(void *pvParameters)
     xSemaphoreGive(soc::data::soc_data_semaphore);
     xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);
     xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
-    vTaskDelay(500);
+    vTaskDelay(1000);
   }
 }
 
@@ -30,7 +31,7 @@ void udp_send_task(void *pvParameters)
     xSemaphoreGive(soc::data::soc_data_semaphore);
     xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);
     xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
-    vTaskDelay(500);
+    vTaskDelay(1000);
   }
 }
 
@@ -41,19 +42,21 @@ void csnv700_task(void *pvParameters)
   uint8_t buffer[8];
   for (;;)
   {
-    xSemaphoreTake(can::csnv700::data::csnv700_data_semaphore, portMAX_DELAY);
-    BaseType_t result = xQueueReceive(xQueue, buffer, portMAX_DELAY);
-    if (result == pdPASS)
+    if (xSemaphoreTake(can::csnv700::data::csnv700_data_semaphore, 0) == pdTRUE)
     {
-      auto response = can::csnv700::driver::Response(buffer);
-      if (response.check_crc())
+      BaseType_t result = xQueueReceive(xQueue, buffer, 0);
+      if (result == pdPASS)
       {
-        response.parse();
-        soc::driver::update_soc(can::csnv700::data::current, spi::ltc6811::data::cell_data.sum / 10000);
+        auto response = can::csnv700::driver::Response(buffer);
+        if (response.check_crc())
+        {
+          response.parse();
+          soc::driver::update_soc(can::csnv700::data::current, spi::ltc6811::data::cell_data.sum / 10000);
+        }
       }
+      xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);
+      vTaskDelay(5);
     }
-    xSemaphoreGive(can::csnv700::data::csnv700_data_semaphore);
-    vTaskDelay(1);
   }
 }
 void ltc6811_task(void *pvParameters)
@@ -72,7 +75,7 @@ void dbg_task(void *pvParameters)
 {
   for (;;)
   {
-    if (xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, 0) == pdTRUE)
+    if (xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, portMAX_DELAY) == pdTRUE)
     {
       // spi::ltc6811::data::dbg();
       xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
