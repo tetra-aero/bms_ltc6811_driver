@@ -6,7 +6,7 @@
 namespace board
 {
     static constexpr uint32_t CAN_ID = 0x01;
-    static constexpr uint32_t CHANE_LENGTH = 2;
+    static constexpr uint32_t CHANE_LENGTH = 8; // 1: 12 cells, 2: 24 cells, 8: 96 cells
     static constexpr uint32_t CAN_BITRATE = 500000;
     static constexpr uint32_t UART_BITRATE = 115200;
     static constexpr uint32_t CAN_RX_PIN = 34;
@@ -29,5 +29,5 @@ namespace board
         Disable,
         Enable,
     };
-    static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Enable;
+    static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Disable;
 };
