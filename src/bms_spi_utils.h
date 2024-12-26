@@ -67,6 +67,7 @@ namespace spi
             using cell_id = uint8_t;
             using thrm_id = uint8_t;
             SemaphoreHandle_t ltc6811_data_semaphore;
+
             struct CellVoltage
             {
                 uint64_t sum{};
@@ -715,6 +716,8 @@ namespace spi
         namespace driver
         {
             bool discharging = false;
+            SemaphoreHandle_t ltc6811_driver_semaphore;
+
             std::optional<bool> set_config(data::Config config)
             {
                 registers::req_write_config_a.set(config);
@@ -826,6 +829,9 @@ namespace spi
                 };
                 std::array<uint32_t, board::CHANE_LENGTH> voltage_delta;
                 std::array<DeltaLine, board::CHANE_LENGTH> state{DeltaLine::TOL_LINE};
+                SemaphoreHandle_t ltc6811_discharge_semaphore;
+                data::Config config;
+                uint32_t duty_count;
 
                 void update_delta()
                 {
@@ -878,20 +884,15 @@ namespace spi
 
                 struct Method_Min
                 {
-                    data::Config update_dcc()
+                    data::Config update_dcc(data::CellVoltage &voltage, data::Temperature &temperature)
                     {
                         data::Config config;
                         data::ic_id ic = board::CHANE_LENGTH - 1;
                         update_delta();
                         for (auto &board : config.data)
                         {
-                            if (data::temp_data.over[ic])
-                            {
-                                ic--;
-                                continue;
-                            }
                             for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
-                                if (data::cell_data.vol[ic][cell] > data::cell_data.vol_range.first + voltage_delta[ic])
+                                if (voltage.vol[ic][cell] > voltage.vol_range.first + voltage_delta[ic] && !temperature.over[ic])
                                     board[cell] = true;
                                 else
                                     board[cell] = false;
@@ -904,7 +905,7 @@ namespace spi
 
                 struct Method_Mean
                 {
-                    data::Config update_dcc()
+                    data::Config update_dcc(data::CellVoltage &voltage, data::Temperature &temperature)
                     {
                         data::Config config;
                         data::ic_id ic = board::CHANE_LENGTH - 1;
@@ -912,7 +913,7 @@ namespace spi
                         for (auto &board : data::config.data)
                         {
                             for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
-                                if (data::cell_data.vol[ic][cell] > data::cell_data.average + voltage_delta[ic] && !data::temp_data.over[ic])
+                                if (voltage.vol[ic][cell] > voltage.average + voltage_delta[ic] && !temperature.over[ic])
                                     board[cell] = true;
                                 else
                                     board[cell] = false;
@@ -924,11 +925,10 @@ namespace spi
                 };
 
                 template <class C>
-                void loop()
+                void update_config(data::CellVoltage &voltage, data::Temperature &temperature)
                 {
                     C method;
-                    data::Config config = method.update_dcc();
-                    set_config(config);
+                    config = method.update_dcc(voltage, temperature);
                 }
             };
 
@@ -936,37 +936,50 @@ namespace spi
             {
                 SPI.begin();
                 SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));
-                delay(20);
                 pinMode(SS, OUTPUT);
                 pinMode(MISO, INPUT);
                 init = true;
+                delay(20);
                 utils::wakeup(SPI, SS);
                 if (!set_duty(param::DUTY_RATIO).has_value())
                 {
                     Serial.println("Error");
                 }
                 data::ltc6811_data_semaphore = xSemaphoreCreateBinary();
+                ltc6811_driver_semaphore = xSemaphoreCreateBinary();
                 xSemaphoreGive(data::ltc6811_data_semaphore);
+                xSemaphoreGive(ltc6811_driver_semaphore);
             }
 
-            void loop()
+            void loop(uint32_t vol_recover_time)
             {
-                if (!discharging)
+                xSemaphoreTake(ltc6811_driver_semaphore, portMAX_DELAY);
+                data::Config clear{};
+                set_config(clear);
+                vTaskDelay(vol_recover_time); // Wait Voltage Recovery Time
+                get_cell();
+                get_temp();
+                get_status();
+                get_duty();
+                get_config();
+                discharge::update_config<discharge::Method_Min>(data::cell_data, data::temp_data);
+                xSemaphoreGive(ltc6811_driver_semaphore);
+            }
+            void discharge_loop()
+            {
+                if (param::DISCHARGE_PERMISSION == param::Dcp::Enable)
                 {
-
-                    if (get_cell().has_value() && get_temp().has_value() && get_status().has_value() && get_duty().has_value() && get_config().has_value())
+                    xSemaphoreTake(ltc6811_driver_semaphore, portMAX_DELAY);
+                    if (static_cast<uint32_t>(param::DUTY_RATIO) >= discharge::duty_count)
                     {
-                        if (param::DISCHARGE_PERMISSION == param::Dcp::Enable)
-                        {
-                            discharge::loop<discharge::Method_Min>();
-                        }
+                        set_config(discharge::config);
+                        discharge::duty_count++;
                     }
-                }
-                else
-                {
-                    data::Config clear{};
-                    set_config(clear);
-                    discharging = false;
+                    xSemaphoreGive(ltc6811_driver_semaphore);
+                    if (discharge::duty_count > param::Duty::Ratio_16_16)
+                    {
+                        discharge::duty_count = 0;
+                    }
                 }
             }
         };
