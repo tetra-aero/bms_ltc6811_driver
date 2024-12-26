@@ -831,7 +831,7 @@ namespace spi
                 std::array<DeltaLine, board::CHANE_LENGTH> state{DeltaLine::TOL_LINE};
                 SemaphoreHandle_t ltc6811_discharge_semaphore;
                 data::Config config;
-                uint32_t duty_count;
+                uint32_t duty_count = 0;
 
                 void update_delta()
                 {
@@ -861,7 +861,6 @@ namespace spi
                                 if (data.data[ic][i])
                                 {
                                     state[ic] = DeltaLine::ABS_LINE;
-                                    discharging = true;
                                     break;
                                 }
                             }
@@ -873,7 +872,6 @@ namespace spi
                                 if (data.data[ic][i])
                                 {
                                     state[ic] = DeltaLine::ABS_LINE;
-                                    discharging = true;
                                     break;
                                 }
                             }
@@ -973,10 +971,14 @@ namespace spi
                     if (static_cast<uint32_t>(param::DUTY_RATIO) >= discharge::duty_count)
                     {
                         set_config(discharge::config);
-                        discharge::duty_count++;
                     }
+                    else
+                    {
+                        set_config(data::Config{});
+                    }
+                    discharge::duty_count++;
                     xSemaphoreGive(ltc6811_driver_semaphore);
-                    if (discharge::duty_count > param::Duty::Ratio_16_16)
+                    if (discharge::duty_count > static_cast<uint32_t>(param::Duty::Ratio_16_16))
                     {
                         discharge::duty_count = 0;
                     }

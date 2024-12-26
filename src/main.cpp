@@ -59,12 +59,14 @@ void csnv700_task(void *pvParameters)
 }
 void ltc6811_task(void *pvParameters)
 {
+  uint32_t vol_recover_time = 100;
+  uint32_t cycle_time = 1000;
   for (;;)
   {
     xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, portMAX_DELAY);
-    spi::ltc6811::driver::loop(100);
+    spi::ltc6811::driver::loop(vol_recover_time);
     xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
-    vTaskDelay(1000);
+    vTaskDelay(cycle_time);
   }
 }
 
@@ -72,8 +74,7 @@ void ltc6811_discharge_task(void *pvParameters)
 {
   for (;;)
   {
-    xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, portMAX_DELAY);
-    xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
+    spi::ltc6811::driver::discharge_loop();
     vTaskDelay(50);
   }
 }
