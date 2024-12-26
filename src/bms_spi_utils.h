@@ -911,13 +911,8 @@ namespace spi
                         update_delta();
                         for (auto &board : data::config.data)
                         {
-                            if (data::temp_data.over[ic])
-                            {
-                                ic--;
-                                continue;
-                            }
                             for (size_t cell{}; cell < board::CELL_NUM_PER_IC; cell++)
-                                if (data::cell_data.vol[ic][cell] > data::cell_data.average + voltage_delta[ic])
+                                if (data::cell_data.vol[ic][cell] > data::cell_data.average + voltage_delta[ic] && !data::temp_data.over[ic])
                                     board[cell] = true;
                                 else
                                     board[cell] = false;
