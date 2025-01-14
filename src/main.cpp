@@ -59,14 +59,26 @@ void csnv700_task(void *pvParameters)
 }
 void ltc6811_task(void *pvParameters)
 {
+  uint32_t vol_recover_time = 100;
+  uint32_t cycle_time = 1000;
   for (;;)
   {
     xSemaphoreTake(spi::ltc6811::data::ltc6811_data_semaphore, portMAX_DELAY);
-    spi::ltc6811::driver::loop();
+    spi::ltc6811::driver::loop(vol_recover_time);
     xSemaphoreGive(spi::ltc6811::data::ltc6811_data_semaphore);
-    vTaskDelay(1000);
+    vTaskDelay(cycle_time);
   }
 }
+
+void ltc6811_discharge_task(void *pvParameters)
+{
+  for (;;)
+  {
+    spi::ltc6811::driver::discharge_loop();
+    vTaskDelay(50);
+  }
+}
+
 void dbg_task(void *pvParameters)
 {
   for (;;)
@@ -101,6 +113,7 @@ void setup()
   can::csnv700::driver::setup();
   delay(1000);
   xTaskCreate(reinterpret_cast<TaskFunction_t>(ltc6811_task), "ltc6811", 2048, NULL, 1, NULL);
+  xTaskCreate(reinterpret_cast<TaskFunction_t>(ltc6811_discharge_task), "ltc6811_discharge", 2048, NULL, 1, NULL);
   xTaskCreate(reinterpret_cast<TaskFunction_t>(csnv700_task), "csnv700", 2048, can::driver::can_message_queue, 1, NULL);
   // // xTaskCreate(reinterpret_cast<TaskFunction_t>(udp_send_task), "udp_send", 2048, NULL, 1, NULL);
   xTaskCreate(reinterpret_cast<TaskFunction_t>(can_send_task), "can_send", 2048, NULL, 1, NULL);
