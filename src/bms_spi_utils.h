@@ -18,11 +18,13 @@ namespace spi
                 Filtered,
             };
 
+            /*
             enum class Dcp : uint8_t
             {
                 Disable,
                 Enable,
             };
+            */
 
             enum class Duty : uint8_t
             {
@@ -45,7 +47,9 @@ namespace spi
             };
             constexpr uint32_t T_REF_MAX = 4400;
             constexpr uint32_t T_CYCLE_FAST_MAX = 1185;
-            static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Enable;
+            //static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Enable;
+            //static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Disable;
+            static constexpr board::Dcp DISCHARGE_PERMISSION = board::DISCHARGE_PERMISSION;
             static constexpr Duty DUTY_RATIO = Duty::Ratio_1_16;
             static constexpr Mode DETECTION_MODE = Mode::Normal;
 
@@ -965,7 +969,8 @@ namespace spi
             }
             void discharge_loop()
             {
-                if (param::DISCHARGE_PERMISSION == param::Dcp::Enable)
+                //if (param::DISCHARGE_PERMISSION == param::Dcp::Enable)
+                if (param::DISCHARGE_PERMISSION == board::Dcp::Enable)
                 {
                     xSemaphoreTake(ltc6811_driver_semaphore, portMAX_DELAY);
                     if (static_cast<uint32_t>(param::DUTY_RATIO) >= discharge::duty_count)

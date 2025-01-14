@@ -6,7 +6,7 @@
 namespace board
 {
     static constexpr uint32_t CAN_ID = 0x01;
-    static constexpr uint32_t CHANE_LENGTH = 1;
+    static constexpr uint32_t CHANE_LENGTH = 8; // 1: 12 cells, 2: 24 cells, 8: 96 cells
     static constexpr uint32_t CAN_BITRATE = 500000;
     static constexpr uint32_t UART_BITRATE = 115200;
     static constexpr uint32_t CAN_RX_PIN = 34;
@@ -23,4 +23,11 @@ namespace board
     using CELL_DATA = std::array<std::array<uint16_t, CELL_NUM_PER_IC>, CHANE_LENGTH>;
     using TEMP_DATA = std::array<std::array<int32_t, THURMISTA_NUM_PER_IC>, CHANE_LENGTH>;
     using VOL_DATA = float;
+
+    enum class Dcp : uint8_t
+    {
+        Disable,
+        Enable,
+    };
+    static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Disable;
 };
