@@ -3,6 +3,15 @@
 #include "bms_udp_utils.h"
 #include "bms_can_utils.h"
 #include "bms_soc_utils.h"
+#include <gpio_MCP23S17.h>
+
+#define GPIO_ADRS 0x20
+#define GPIO_CS 5
+
+gpio_MCP23S17 mcp(GPIO_CS, GPIO_ADRS);
+
+uint8_t Gachacon_ID = 34;
+//static constexpr uint32_t CAN_ID = 0x01;
 
 void can_send_task(void *pvParameters)
 {
@@ -111,6 +120,13 @@ void setup()
   soc::driver::setup();
   spi::ltc6811::driver::setup();
   can::csnv700::driver::setup();
+
+  mcp.begin();                    //it will initialize SPI as well
+  mcp.gpioPinMode(INPUT);         //bank A & B as INPUT
+  uint8_t hardcoder_val = mcp.gpioRegisterReadByte(MCP23S17_GPIO);
+  //uint8_t hardcoder_val = Gachacon_ID;
+  board::CAN_ID = (uint32_t)(hardcoder_val);
+
   delay(1000);
   xTaskCreate(reinterpret_cast<TaskFunction_t>(ltc6811_task), "ltc6811", 2048, NULL, 1, NULL);
   xTaskCreate(reinterpret_cast<TaskFunction_t>(ltc6811_discharge_task), "ltc6811_discharge", 2048, NULL, 1, NULL);
