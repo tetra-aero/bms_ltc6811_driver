@@ -50,7 +50,7 @@ namespace spi
             //static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Enable;
             //static constexpr Dcp DISCHARGE_PERMISSION = Dcp::Disable;
             static constexpr board::Dcp DISCHARGE_PERMISSION = board::DISCHARGE_PERMISSION;
-            static constexpr Duty DUTY_RATIO = Duty::Ratio_1_16;
+            static constexpr Duty DUTY_RATIO = Duty::Ratio_5_16;
             static constexpr Mode DETECTION_MODE = Mode::Normal;
 
             static constexpr double TEMP_LIMIT = 50.0;
